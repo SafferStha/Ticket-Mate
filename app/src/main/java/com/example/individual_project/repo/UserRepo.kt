@@ -4,6 +4,8 @@ interface UserRepo {
 
     fun login(email: String, password: String, callback: (Boolean, String) -> Unit)
 
+    fun addUser(name: String, email: String, password: String, contact: String, callback: (Boolean, String) -> Unit)
+
     fun register(email: String, password: String, name: String, contact: String, callback: (Boolean, String) -> Unit)
 
     fun forgetPassword(email: String, callback: (Boolean, String) -> Unit)
