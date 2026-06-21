@@ -1,4 +1,4 @@
-package com.example.individual_project.screens
+package com.example.individual_project.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -81,7 +81,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.example.individual_project.navigation.Screen
+import com.example.individual_project.ui.navigation.Screen
 import com.example.individual_project.ui.theme.IndividualProjectTheme
 import com.example.individual_project.ui.theme.TmBackground
 import com.example.individual_project.ui.theme.TmBlue
