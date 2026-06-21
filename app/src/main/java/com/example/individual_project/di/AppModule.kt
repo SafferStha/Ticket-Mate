@@ -3,10 +3,12 @@ package com.example.individual_project.di
 import com.example.individual_project.data.repository.AuthRepositoryImpl
 import com.example.individual_project.data.repository.BookingRepositoryImpl
 import com.example.individual_project.data.repository.EventRepositoryImpl
+import com.example.individual_project.data.repository.PaymentRepositoryImpl
 import com.example.individual_project.data.repository.UserRepositoryImpl
 import com.example.individual_project.domain.repository.AuthRepository
 import com.example.individual_project.domain.repository.BookingRepository
 import com.example.individual_project.domain.repository.EventRepository
+import com.example.individual_project.domain.repository.PaymentRepository
 import com.example.individual_project.domain.repository.UserRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
@@ -62,4 +64,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindUserRepository(impl: UserRepositoryImpl): UserRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindPaymentRepository(impl: PaymentRepositoryImpl): PaymentRepository
 }

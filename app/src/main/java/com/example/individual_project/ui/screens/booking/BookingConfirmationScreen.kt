@@ -68,10 +68,10 @@ fun BookingConfirmationScreen(
     val uiState      by viewModel.uiState.collectAsState()
     val snackbarHost = remember { SnackbarHostState() }
 
-    // Navigate to success once booking is confirmed
+    // Navigate to Checkout once the PENDING booking is created
     LaunchedEffect(uiState.bookingId) {
         uiState.bookingId?.let { bookingId ->
-            navController.navigate(Screen.BookingSuccess.createRoute(bookingId)) {
+            navController.navigate(Screen.Checkout.createRoute(bookingId)) {
                 // Pop BookingScreen + ConfirmationScreen; EventDetail stays on stack
                 popUpTo(Screen.Booking.route) { inclusive = true }
             }
@@ -129,7 +129,7 @@ fun BookingConfirmationScreen(
                                 )
                                 Text("Processing…", style = MaterialTheme.typography.labelLarge)
                             } else {
-                                Text("Confirm Booking", style = MaterialTheme.typography.labelLarge)
+                                Text("Proceed to Checkout", style = MaterialTheme.typography.labelLarge)
                             }
                         }
                         Spacer(modifier = Modifier.height(Spacing.sm))

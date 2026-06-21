@@ -25,10 +25,10 @@ class BookingRepositoryImpl @Inject constructor(
         val seatResult = eventRepository.deductSeats(booking.eventId, booking.quantity)
         if (seatResult is Resource.Error) return Resource.Error(seatResult.message)
 
-        // ── Persist the booking ────────────────────────────────────────────────
+        // ── Persist the booking as PENDING until payment is confirmed ─────────
         val bookingResult = bookingDataSource.createBooking(
             booking.copy(
-                bookingStatus = BookingStatus.CONFIRMED.name,
+                bookingStatus = BookingStatus.PENDING.name,
                 bookingDate   = System.currentTimeMillis()
             )
         )
@@ -47,6 +47,9 @@ class BookingRepositoryImpl @Inject constructor(
 
     override suspend fun getBookingById(bookingId: String): Resource<Booking> =
         bookingDataSource.getBookingById(bookingId)
+
+    override suspend fun updateBookingStatus(bookingId: String, status: String): Resource<Unit> =
+        bookingDataSource.updateBookingStatus(bookingId, status)
 
     override suspend fun cancelBooking(bookingId: String): Resource<Unit> {
         // ── Fetch booking to get eventId + quantity for seat restoration ───────

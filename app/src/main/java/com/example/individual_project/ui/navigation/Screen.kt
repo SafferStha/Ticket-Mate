@@ -39,9 +39,19 @@ sealed class Screen(val route: String) {
 
     object MyBookings : Screen("my_bookings")
 
-    // ─── Legacy (unused) ──────────────────────────────────────────────────────
-    object Checkout    : Screen("checkout/{bookingId}") {
+    // ─── Payment flow ─────────────────────────────────────────────────────────
+    object Checkout : Screen("checkout/{bookingId}") {
         fun createRoute(bookingId: String) = "checkout/$bookingId"
     }
+
+    object PaymentSuccess : Screen("payment_success/{paymentId}") {
+        fun createRoute(paymentId: String) = "payment_success/$paymentId"
+    }
+
+    object PaymentFailure : Screen("payment_failed/{bookingId}") {
+        fun createRoute(bookingId: String) = "payment_failed/$bookingId"
+    }
+
+    // ─── Legacy (unused) ──────────────────────────────────────────────────────
     object Categories  : Screen("categories")
 }

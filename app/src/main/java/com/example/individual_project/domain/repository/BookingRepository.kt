@@ -8,4 +8,5 @@ interface BookingRepository {
     suspend fun getUserBookings(userId: String): Resource<List<Booking>>
     suspend fun getBookingById(bookingId: String): Resource<Booking>
     suspend fun cancelBooking(bookingId: String): Resource<Unit>
+    suspend fun updateBookingStatus(bookingId: String, status: String): Resource<Unit>
 }

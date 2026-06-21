@@ -23,6 +23,9 @@ import com.example.individual_project.ui.screens.booking.BookingScreen
 import com.example.individual_project.ui.screens.booking.BookingSuccessScreen
 import com.example.individual_project.ui.screens.booking.MyBookingsScreen
 import com.example.individual_project.ui.screens.home.EventDetailScreen
+import com.example.individual_project.ui.screens.payment.CheckoutScreen
+import com.example.individual_project.ui.screens.payment.PaymentFailureScreen
+import com.example.individual_project.ui.screens.payment.PaymentSuccessScreen
 import com.example.individual_project.ui.viewmodel.AuthViewModel
 
 @Composable
@@ -95,6 +98,35 @@ fun NavGraph(navController: NavHostController) {
         composable(Screen.MyBookings.route) {
             AuthGuard(navController) {
                 MyBookingsScreen(navController = navController)
+            }
+        }
+
+        // ── Payment flow ──────────────────────────────────────────────────────
+        composable(
+            route     = Screen.Checkout.route,
+            arguments = listOf(navArgument("bookingId") { type = NavType.StringType })
+        ) {
+            AuthGuard(navController) {
+                CheckoutScreen(navController = navController)
+            }
+        }
+
+        composable(
+            route     = Screen.PaymentSuccess.route,
+            arguments = listOf(navArgument("paymentId") { type = NavType.StringType })
+        ) {
+            AuthGuard(navController) {
+                PaymentSuccessScreen(navController = navController)
+            }
+        }
+
+        composable(
+            route     = Screen.PaymentFailure.route,
+            arguments = listOf(navArgument("bookingId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            AuthGuard(navController) {
+                val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
+                PaymentFailureScreen(navController = navController, bookingId = bookingId)
             }
         }
     }

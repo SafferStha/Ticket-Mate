@@ -51,4 +51,11 @@ class FirebaseBookingDataSource @Inject constructor(
     } catch (e: Exception) {
         Resource.Error(e.message ?: "Failed to cancel booking", e)
     }
+
+    suspend fun updateBookingStatus(bookingId: String, status: String): Resource<Unit> = try {
+        bookingsRef.child(bookingId).child("bookingStatus").setValue(status).await()
+        Resource.Success(Unit)
+    } catch (e: Exception) {
+        Resource.Error(e.message ?: "Failed to update booking status", e)
+    }
 }
