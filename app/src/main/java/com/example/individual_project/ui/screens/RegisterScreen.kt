@@ -69,6 +69,7 @@ import com.example.individual_project.ui.theme.TmLightBlue
 import com.example.individual_project.ui.theme.TmNavyBlue
 import com.example.individual_project.ui.theme.TmTextSecondary
 import com.example.individual_project.ui.viewmodel.AuthViewModel
+import com.example.individual_project.utils.Validation
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -92,14 +93,23 @@ fun RegisterScreen(
 
     val registerState by viewModel.registerState.collectAsState()
 
-    // Navigate to Dashboard on successful registration
+    // After registration, verification email is sent automatically — go to VerifyEmail, not Dashboard
     LaunchedEffect(registerState.data) {
         if (registerState.data != null) {
             viewModel.clearRegisterState()
-            navController.navigate(Screen.Dashboard.route) {
+            navController.navigate(Screen.VerifyEmail.route) {
                 popUpTo(Screen.Login.route) { inclusive = true }
             }
         }
+    }
+
+    fun validate(): Boolean {
+        nameError            = Validation.validateName(fullName)                          ?: ""
+        emailError           = Validation.validateEmail(email)                            ?: ""
+        passwordError        = Validation.validatePassword(password)                      ?: ""
+        confirmPasswordError = Validation.validateConfirmPassword(password, confirmPassword) ?: ""
+        return nameError.isEmpty() && emailError.isEmpty() &&
+               passwordError.isEmpty() && confirmPasswordError.isEmpty()
     }
 
     val fieldColors = OutlinedTextFieldDefaults.colors(
@@ -154,7 +164,7 @@ fun RegisterScreen(
                 }
             }
 
-            // ── Fields ──────────────────────────────────────────────────
+            // ── Fields ──────────────────────────────────────────────────────
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -162,11 +172,11 @@ fun RegisterScreen(
             ) {
                 // Full Name
                 OutlinedTextField(
-                    value         = fullName,
-                    onValueChange = { fullName = it; nameError = "" },
-                    label         = { Text("Full Name") },
-                    leadingIcon   = { Icon(Icons.Default.Person, null, tint = TmBlue) },
-                    isError       = nameError.isNotEmpty(),
+                    value          = fullName,
+                    onValueChange  = { fullName = it; nameError = "" },
+                    label          = { Text("Full Name") },
+                    leadingIcon    = { Icon(Icons.Default.Person, null, tint = TmBlue) },
+                    isError        = nameError.isNotEmpty(),
                     supportingText = if (nameError.isNotEmpty()) {
                         { Text(nameError, color = TmError) }
                     } else null,
@@ -180,96 +190,96 @@ fun RegisterScreen(
 
                 // Email
                 OutlinedTextField(
-                    value         = email,
-                    onValueChange = { email = it; emailError = "" },
-                    label         = { Text("Email Address") },
-                    leadingIcon   = { Icon(Icons.Default.Email, null, tint = TmBlue) },
-                    isError       = emailError.isNotEmpty(),
+                    value          = email,
+                    onValueChange  = { email = it; emailError = "" },
+                    label          = { Text("Email Address") },
+                    leadingIcon    = { Icon(Icons.Default.Email, null, tint = TmBlue) },
+                    isError        = emailError.isNotEmpty(),
                     supportingText = if (emailError.isNotEmpty()) {
                         { Text(emailError, color = TmError) }
                     } else null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    modifier   = Modifier.fillMaxWidth(),
-                    shape      = RoundedCornerShape(12.dp),
-                    colors     = fieldColors,
-                    singleLine = true
+                    modifier        = Modifier.fillMaxWidth(),
+                    shape           = RoundedCornerShape(12.dp),
+                    colors          = fieldColors,
+                    singleLine      = true
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Phone (optional — maps to 'contact' in User model)
+                // Phone (optional)
                 OutlinedTextField(
-                    value         = phone,
-                    onValueChange = { phone = it },
-                    label         = { Text("Phone Number (Optional)") },
-                    leadingIcon   = { Icon(Icons.Default.Phone, null, tint = TmBlue) },
+                    value           = phone,
+                    onValueChange   = { phone = it },
+                    label           = { Text("Phone Number (Optional)") },
+                    leadingIcon     = { Icon(Icons.Default.Phone, null, tint = TmBlue) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    modifier   = Modifier.fillMaxWidth(),
-                    shape      = RoundedCornerShape(12.dp),
-                    colors     = fieldColors,
-                    singleLine = true
+                    modifier        = Modifier.fillMaxWidth(),
+                    shape           = RoundedCornerShape(12.dp),
+                    colors          = fieldColors,
+                    singleLine      = true
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Password
                 OutlinedTextField(
-                    value         = password,
-                    onValueChange = { password = it; passwordError = "" },
-                    label         = { Text("Password") },
-                    leadingIcon   = { Icon(Icons.Default.Lock, null, tint = TmBlue) },
-                    trailingIcon  = {
+                    value          = password,
+                    onValueChange  = { password = it; passwordError = "" },
+                    label          = { Text("Password") },
+                    leadingIcon    = { Icon(Icons.Default.Lock, null, tint = TmBlue) },
+                    trailingIcon   = {
                         IconButton(onClick = { passwordVisible = !passwordVisible }) {
                             Icon(
-                                imageVector = if (passwordVisible) Icons.Default.VisibilityOff
-                                              else Icons.Default.Visibility,
+                                imageVector        = if (passwordVisible) Icons.Default.VisibilityOff
+                                                     else Icons.Default.Visibility,
                                 contentDescription = null,
-                                tint = TmTextSecondary
+                                tint               = TmTextSecondary
                             )
                         }
                     },
                     visualTransformation = if (passwordVisible) VisualTransformation.None
                                            else PasswordVisualTransformation(),
-                    isError       = passwordError.isNotEmpty(),
+                    isError        = passwordError.isNotEmpty(),
                     supportingText = if (passwordError.isNotEmpty()) {
                         { Text(passwordError, color = TmError) }
                     } else null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    modifier   = Modifier.fillMaxWidth(),
-                    shape      = RoundedCornerShape(12.dp),
-                    colors     = fieldColors,
-                    singleLine = true
+                    modifier        = Modifier.fillMaxWidth(),
+                    shape           = RoundedCornerShape(12.dp),
+                    colors          = fieldColors,
+                    singleLine      = true
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Confirm Password
                 OutlinedTextField(
-                    value         = confirmPassword,
-                    onValueChange = { confirmPassword = it; confirmPasswordError = "" },
-                    label         = { Text("Confirm Password") },
-                    leadingIcon   = { Icon(Icons.Default.Lock, null, tint = TmBlue) },
-                    trailingIcon  = {
+                    value          = confirmPassword,
+                    onValueChange  = { confirmPassword = it; confirmPasswordError = "" },
+                    label          = { Text("Confirm Password") },
+                    leadingIcon    = { Icon(Icons.Default.Lock, null, tint = TmBlue) },
+                    trailingIcon   = {
                         IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
                             Icon(
-                                imageVector = if (confirmPasswordVisible) Icons.Default.VisibilityOff
-                                              else Icons.Default.Visibility,
+                                imageVector        = if (confirmPasswordVisible) Icons.Default.VisibilityOff
+                                                     else Icons.Default.Visibility,
                                 contentDescription = null,
-                                tint = TmTextSecondary
+                                tint               = TmTextSecondary
                             )
                         }
                     },
                     visualTransformation = if (confirmPasswordVisible) VisualTransformation.None
                                            else PasswordVisualTransformation(),
-                    isError       = confirmPasswordError.isNotEmpty(),
+                    isError        = confirmPasswordError.isNotEmpty(),
                     supportingText = if (confirmPasswordError.isNotEmpty()) {
                         { Text(confirmPasswordError, color = TmError) }
                     } else null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    modifier   = Modifier.fillMaxWidth(),
-                    shape      = RoundedCornerShape(12.dp),
-                    colors     = fieldColors,
-                    singleLine = true
+                    modifier        = Modifier.fillMaxWidth(),
+                    shape           = RoundedCornerShape(12.dp),
+                    colors          = fieldColors,
+                    singleLine      = true
                 )
 
                 Spacer(modifier = Modifier.height(20.dp))
@@ -308,7 +318,7 @@ fun RegisterScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Firebase error
+                // Firebase error (mapped — no raw exception messages)
                 if (registerState.hasError) {
                     Text(
                         text      = registerState.error ?: "",
@@ -323,30 +333,8 @@ fun RegisterScreen(
 
                 // Create Account button
                 Button(
-                    onClick = {
-                        var valid = true
-                        nameError            = ""
-                        emailError           = ""
-                        passwordError        = ""
-                        confirmPasswordError = ""
-
-                        if (fullName.isBlank()) {
-                            nameError = "Full name is required"; valid = false
-                        }
-                        if (email.isBlank()) {
-                            emailError = "Email is required"; valid = false
-                        } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                            emailError = "Enter a valid email address"; valid = false
-                        }
-                        if (password.isBlank()) {
-                            passwordError = "Password is required"; valid = false
-                        } else if (password.length < 6) {
-                            passwordError = "Minimum 6 characters"; valid = false
-                        }
-                        if (confirmPassword != password) {
-                            confirmPasswordError = "Passwords do not match"; valid = false
-                        }
-                        if (valid && acceptTerms) {
+                    onClick  = {
+                        if (validate() && acceptTerms) {
                             viewModel.register(email, password, fullName, phone)
                         }
                     },
@@ -359,9 +347,11 @@ fun RegisterScreen(
                 ) {
                     if (registerState.isLoading) {
                         CircularProgressIndicator(
-                            color     = Color.White,
+                            color       = Color.White,
                             strokeWidth = 2.dp,
-                            modifier  = Modifier.height(20.dp).padding(horizontal = 4.dp)
+                            modifier    = Modifier
+                                .height(20.dp)
+                                .padding(horizontal = 4.dp)
                         )
                     } else {
                         Text(

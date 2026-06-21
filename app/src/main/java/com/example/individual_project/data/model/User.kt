@@ -5,6 +5,7 @@ data class User(
     val name         : String = "",
     val email        : String = "",
     val contact      : String = "",
+    val createdAt    : Long   = 0L,
     val profileImage : String = ""
     // No 'password' field — passwords are managed by Firebase Auth, never stored in the database.
 )

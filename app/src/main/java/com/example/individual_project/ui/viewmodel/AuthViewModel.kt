@@ -2,32 +2,52 @@ package com.example.individual_project.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.individual_project.auth.AuthStateManager
 import com.example.individual_project.domain.repository.AuthRepository
 import com.example.individual_project.ui.model.UiState
 import com.example.individual_project.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+    private val authRepository  : AuthRepository,
+    val          authStateManager: AuthStateManager
 ) : ViewModel() {
 
-    private val _loginState    = MutableStateFlow(UiState<Unit>())
-    val loginState   : StateFlow<UiState<Unit>> = _loginState.asStateFlow()
+    // ── Per-operation UI states ───────────────────────────────────────────────
+
+    private val _loginState = MutableStateFlow(UiState<Unit>())
+    val loginState: StateFlow<UiState<Unit>> = _loginState.asStateFlow()
 
     private val _registerState = MutableStateFlow(UiState<Unit>())
     val registerState: StateFlow<UiState<Unit>> = _registerState.asStateFlow()
 
-    private val _resetState    = MutableStateFlow(UiState<Unit>())
-    val resetState   : StateFlow<UiState<Unit>> = _resetState.asStateFlow()
+    private val _resetState = MutableStateFlow(UiState<Unit>())
+    val resetState: StateFlow<UiState<Unit>> = _resetState.asStateFlow()
 
-    val isLoggedIn   : Boolean  get() = authRepository.isLoggedIn
-    val currentUserId: String?  get() = authRepository.currentUserId
+    private val _verifyEmailState = MutableStateFlow(UiState<Unit>())
+    val verifyEmailState: StateFlow<UiState<Unit>> = _verifyEmailState.asStateFlow()
+
+    // ── One-shot logout navigation event ─────────────────────────────────────
+    private val _logoutEvent = Channel<Unit>(Channel.BUFFERED)
+    val logoutEvent = _logoutEvent.receiveAsFlow()
+
+    // ── Auth state (single source of truth) ──────────────────────────────────
+    val authState = authStateManager.authState
+
+    // ── Derived properties ────────────────────────────────────────────────────
+    val isLoggedIn      : Boolean get() = authRepository.isLoggedIn
+    val currentUserId   : String? get() = authRepository.currentUserId
+    val isEmailVerified : Boolean get() = authRepository.isEmailVerified
+
+    // ── Operations ────────────────────────────────────────────────────────────
 
     fun login(email: String, password: String) {
         viewModelScope.launch {
@@ -62,9 +82,49 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun logout() = authRepository.logout()
+    fun resendVerificationEmail() {
+        viewModelScope.launch {
+            _verifyEmailState.value = UiState(isLoading = true)
+            _verifyEmailState.value = when (val r = authRepository.sendEmailVerification()) {
+                is Resource.Success -> UiState(data = Unit)
+                is Resource.Error   -> UiState(error = r.message)
+                else                -> UiState(error = "Failed to resend verification email")
+            }
+        }
+    }
 
-    fun clearLoginState()    { _loginState.value    = UiState() }
-    fun clearRegisterState() { _registerState.value = UiState() }
-    fun clearResetState()    { _resetState.value    = UiState() }
+    /** Reload the Firebase user and push the new AuthState through AuthStateManager. */
+    fun refreshVerificationStatus() {
+        viewModelScope.launch {
+            authStateManager.refreshVerificationStatus()
+        }
+    }
+
+    /**
+     * Clean logout:
+     *  1. Signs out from Firebase (clears cached credentials)
+     *  2. Resets all UI states
+     *  3. Emits a one-shot event so the UI can navigate to Login with a cleared back stack
+     */
+    fun logout() {
+        viewModelScope.launch {
+            authRepository.logout()
+            clearAllState()
+            _logoutEvent.send(Unit)
+        }
+    }
+
+    // ── State clearers ────────────────────────────────────────────────────────
+
+    fun clearLoginState()       { _loginState.value       = UiState() }
+    fun clearRegisterState()    { _registerState.value    = UiState() }
+    fun clearResetState()       { _resetState.value       = UiState() }
+    fun clearVerifyEmailState() { _verifyEmailState.value = UiState() }
+
+    private fun clearAllState() {
+        _loginState.value       = UiState()
+        _registerState.value    = UiState()
+        _resetState.value       = UiState()
+        _verifyEmailState.value = UiState()
+    }
 }

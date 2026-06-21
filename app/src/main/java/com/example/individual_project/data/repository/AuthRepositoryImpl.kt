@@ -12,8 +12,9 @@ class AuthRepositoryImpl @Inject constructor(
     private val authDataSource: FirebaseAuthDataSource
 ) : AuthRepository {
 
-    override val currentUserId: String? get() = authDataSource.currentUserId
-    override val isLoggedIn: Boolean    get() = authDataSource.currentUser != null
+    override val currentUserId  : String? get() = authDataSource.currentUserId
+    override val isLoggedIn     : Boolean get() = authDataSource.currentUser != null
+    override val isEmailVerified: Boolean get() = authDataSource.isEmailVerified
 
     override suspend fun login(email: String, password: String): Resource<Unit> =
         when (val r = authDataSource.login(email, password)) {
@@ -33,6 +34,12 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun sendPasswordReset(email: String): Resource<Unit> =
         authDataSource.sendPasswordReset(email)
+
+    override suspend fun sendEmailVerification(): Resource<Unit> =
+        authDataSource.sendEmailVerification()
+
+    override suspend fun reloadUser(): Resource<Unit> =
+        authDataSource.reloadUser()
 
     override suspend fun getUserProfile(uid: String): Resource<User> =
         authDataSource.getUserProfile(uid)

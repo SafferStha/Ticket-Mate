@@ -8,6 +8,7 @@ sealed class Screen(val route: String) {
     object Login          : Screen("login")
     object Register       : Screen("register")
     object ForgotPassword : Screen("forgot_password")
+    object VerifyEmail    : Screen("verify_email")
 
     // ─── Main app (inside bottom nav) ─────────────────────────────────────────
     object Dashboard      : Screen("dashboard")     // hosts bottom nav tabs

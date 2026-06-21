@@ -1,6 +1,5 @@
 package com.example.individual_project.ui.screens
 
-import android.util.Patterns
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -59,6 +58,7 @@ import com.example.individual_project.ui.theme.TmDivider
 import com.example.individual_project.ui.theme.TmLightBlue
 import com.example.individual_project.ui.theme.TmNavyBlue
 import com.example.individual_project.ui.viewmodel.AuthViewModel
+import com.example.individual_project.utils.Validation
 
 @Composable
 fun LoginScreen(
@@ -73,31 +73,22 @@ fun LoginScreen(
 
     val loginState by viewModel.loginState.collectAsState()
 
-    // Navigate to Dashboard on successful login
+    // Navigate after successful login — route depends on email verification status
     LaunchedEffect(loginState.data) {
         if (loginState.data != null) {
             viewModel.clearLoginState()
-            navController.navigate(Screen.Dashboard.route) {
+            val destination = if (viewModel.isEmailVerified) Screen.Dashboard.route
+                              else Screen.VerifyEmail.route
+            navController.navigate(destination) {
                 popUpTo(Screen.Login.route) { inclusive = true }
             }
         }
     }
 
     fun validate(): Boolean {
-        var ok = true
-        emailError    = ""
-        passwordError = ""
-        if (email.isBlank()) {
-            emailError = "Email is required"; ok = false
-        } else if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            emailError = "Enter a valid email address"; ok = false
-        }
-        if (password.isBlank()) {
-            passwordError = "Password is required"; ok = false
-        } else if (password.length < 6) {
-            passwordError = "Minimum 6 characters required"; ok = false
-        }
-        return ok
+        emailError    = Validation.validateEmail(email) ?: ""
+        passwordError = if (password.isBlank()) "Password is required." else ""
+        return emailError.isEmpty() && passwordError.isEmpty()
     }
 
     Column(
@@ -106,7 +97,7 @@ fun LoginScreen(
             .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
     ) {
-        // ── Gradient header ──────────────────────────────────────────────
+        // ── Gradient header ────────────────────────────────────────────────
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -132,7 +123,7 @@ fun LoginScreen(
             }
         }
 
-        // ── Form ─────────────────────────────────────────────────────────
+        // ── Form ──────────────────────────────────────────────────────────
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -188,10 +179,10 @@ fun LoginScreen(
                 trailingIcon = {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
-                            imageVector = if (passwordVisible) Icons.Default.VisibilityOff
-                                          else Icons.Default.Visibility,
+                            imageVector        = if (passwordVisible) Icons.Default.VisibilityOff
+                                                 else Icons.Default.Visibility,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint               = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 },
@@ -226,15 +217,15 @@ fun LoginScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(Spacing.md))
+            Spacer(modifier = Modifier.height(Spacing.sm))
 
-            // Firebase error
+            // Firebase error (mapped — no raw exception messages)
             if (loginState.hasError) {
                 Text(
-                    text     = loginState.error ?: "",
-                    color    = MaterialTheme.colorScheme.error,
-                    style    = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier
+                    text      = loginState.error ?: "",
+                    color     = MaterialTheme.colorScheme.error,
+                    style     = MaterialTheme.typography.bodySmall,
+                    modifier  = Modifier
                         .fillMaxWidth()
                         .padding(bottom = Spacing.sm),
                     textAlign = TextAlign.Center
@@ -245,11 +236,7 @@ fun LoginScreen(
             PrimaryButton(
                 text      = "Sign In",
                 isLoading = loginState.isLoading,
-                onClick   = {
-                    if (validate()) {
-                        viewModel.login(email, password)
-                    }
-                }
+                onClick   = { if (validate()) viewModel.login(email, password) }
             )
 
             Spacer(modifier = Modifier.height(Spacing.lg))
@@ -271,7 +258,7 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(Spacing.md))
 
-            // Social buttons (UI-only)
+            // Social buttons (UI-only placeholders)
             Row(modifier = Modifier.fillMaxWidth()) {
                 OutlinedButton(
                     onClick  = {},
