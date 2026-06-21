@@ -8,4 +8,8 @@ interface UserRepository {
     suspend fun getUserProfile(uid: String): Resource<User>
     suspend fun updateUserProfile(user: User): Resource<Unit>
     suspend fun uploadProfileImage(uid: String, imageUri: Uri): Resource<String>
+
+    // ── Favorites ──────────────────────────────────────────────────────────────
+    suspend fun getFavoriteEventIds(uid: String): Resource<List<String>>
+    suspend fun removeFavorite(uid: String, eventId: String): Resource<Unit>
 }

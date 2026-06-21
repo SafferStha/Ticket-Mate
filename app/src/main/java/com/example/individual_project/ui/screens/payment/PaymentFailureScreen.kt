@@ -32,7 +32,6 @@ import com.example.individual_project.ui.navigation.Screen
 import com.example.individual_project.ui.theme.Spacing
 import com.example.individual_project.ui.theme.TmBlue
 import com.example.individual_project.ui.theme.TmError
-import com.example.individual_project.ui.theme.TmErrorBg
 
 @Composable
 fun PaymentFailureScreen(

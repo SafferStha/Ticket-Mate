@@ -45,4 +45,22 @@ class FirebaseUserDataSource @Inject constructor(
     } catch (e: Exception) {
         Resource.Error(e.message ?: "Failed to upload profile image", e)
     }
+
+    // ── Favorites ─────────────────────────────────────────────────────────────────
+    // Firebase path: favorites/{uid}/{eventId} = true
+
+    suspend fun getFavoriteEventIds(uid: String): Resource<List<String>> = try {
+        val snapshot = database.getReference("favorites").child(uid).get().await()
+        val ids = snapshot.children.mapNotNull { it.key }
+        Resource.Success(ids)
+    } catch (e: Exception) {
+        Resource.Error(e.message ?: "Failed to fetch favorites", e)
+    }
+
+    suspend fun removeFavorite(uid: String, eventId: String): Resource<Unit> = try {
+        database.getReference("favorites").child(uid).child(eventId).removeValue().await()
+        Resource.Success(Unit)
+    } catch (e: Exception) {
+        Resource.Error(e.message ?: "Failed to remove favorite", e)
+    }
 }

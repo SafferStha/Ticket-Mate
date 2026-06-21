@@ -26,6 +26,13 @@ import com.example.individual_project.ui.screens.home.EventDetailScreen
 import com.example.individual_project.ui.screens.payment.CheckoutScreen
 import com.example.individual_project.ui.screens.payment.PaymentFailureScreen
 import com.example.individual_project.ui.screens.payment.PaymentSuccessScreen
+import com.example.individual_project.ui.screens.profile.BookingHistoryScreen
+import com.example.individual_project.ui.screens.profile.EditProfileScreen
+import com.example.individual_project.ui.screens.profile.FavoritesScreen
+import com.example.individual_project.ui.screens.profile.MyTicketsScreen
+import com.example.individual_project.ui.screens.profile.PaymentHistoryScreen
+import com.example.individual_project.ui.screens.profile.SettingsScreen
+import com.example.individual_project.ui.screens.profile.TicketDetailScreen
 import com.example.individual_project.ui.viewmodel.AuthViewModel
 
 @Composable
@@ -127,6 +134,52 @@ fun NavGraph(navController: NavHostController) {
             AuthGuard(navController) {
                 val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
                 PaymentFailureScreen(navController = navController, bookingId = bookingId)
+            }
+        }
+
+        // ── Profile flow ──────────────────────────────────────────────────────
+        composable(Screen.EditProfile.route) {
+            AuthGuard(navController) {
+                EditProfileScreen(navController = navController)
+            }
+        }
+
+        composable(Screen.MyTickets.route) {
+            AuthGuard(navController) {
+                MyTicketsScreen(navController = navController)
+            }
+        }
+
+        composable(
+            route     = Screen.TicketDetail.route,
+            arguments = listOf(navArgument("ticketId") { type = NavType.StringType })
+        ) {
+            AuthGuard(navController) {
+                TicketDetailScreen(navController = navController)
+            }
+        }
+
+        composable(Screen.BookingHistory.route) {
+            AuthGuard(navController) {
+                BookingHistoryScreen(navController = navController)
+            }
+        }
+
+        composable(Screen.Favorites.route) {
+            AuthGuard(navController) {
+                FavoritesScreen(navController = navController)
+            }
+        }
+
+        composable(Screen.PaymentHistory.route) {
+            AuthGuard(navController) {
+                PaymentHistoryScreen(navController = navController)
+            }
+        }
+
+        composable(Screen.Settings.route) {
+            AuthGuard(navController) {
+                SettingsScreen(navController = navController)
             }
         }
     }

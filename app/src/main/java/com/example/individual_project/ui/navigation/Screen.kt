@@ -52,6 +52,18 @@ sealed class Screen(val route: String) {
         fun createRoute(bookingId: String) = "payment_failed/$bookingId"
     }
 
+    // ─── Profile flow ─────────────────────────────────────────────────────────────
+    object EditProfile    : Screen("edit_profile")
+
+    object TicketDetail   : Screen("ticket_detail/{ticketId}") {
+        fun createRoute(ticketId: String) = "ticket_detail/$ticketId"
+    }
+
+    object BookingHistory : Screen("booking_history")
+    object Favorites      : Screen("favorites")
+    object PaymentHistory : Screen("payment_history")
+    object Settings       : Screen("settings")
+
     // ─── Legacy (unused) ──────────────────────────────────────────────────────
     object Categories  : Screen("categories")
 }

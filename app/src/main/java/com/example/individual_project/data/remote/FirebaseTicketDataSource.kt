@@ -42,4 +42,13 @@ class FirebaseTicketDataSource @Inject constructor(
     } catch (e: Exception) {
         Resource.Error(e.message ?: "Failed to fetch ticket", e)
     }
+
+    suspend fun getTicketById(ticketId: String): Resource<Ticket> = try {
+        val snapshot = ticketsRef.child(ticketId).get().await()
+        val ticket   = snapshot.getValue(Ticket::class.java)
+            ?: return Resource.Error("Ticket not found: $ticketId")
+        Resource.Success(ticket)
+    } catch (e: Exception) {
+        Resource.Error(e.message ?: "Failed to fetch ticket", e)
+    }
 }

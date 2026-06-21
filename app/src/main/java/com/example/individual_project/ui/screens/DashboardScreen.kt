@@ -14,8 +14,8 @@ import com.example.individual_project.ui.components.TmBottomNavigationBar
 import com.example.individual_project.ui.navigation.Screen
 import com.example.individual_project.ui.screens.booking.MyBookingsScreen
 import com.example.individual_project.ui.screens.home.HomeScreen
-import com.example.individual_project.ui.screens.home.ProfileScreen
 import com.example.individual_project.ui.screens.home.SearchScreen
+import com.example.individual_project.ui.screens.profile.ProfileScreen
 
 /**
  * Thin coordinator — owns bottom-nav tab state only.

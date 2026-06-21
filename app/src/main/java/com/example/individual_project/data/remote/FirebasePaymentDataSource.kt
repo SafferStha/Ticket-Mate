@@ -46,4 +46,14 @@ class FirebasePaymentDataSource @Inject constructor(
 
     suspend fun refundPayment(paymentId: String): Resource<Unit> =
         updatePaymentStatus(paymentId, PaymentStatus.REFUNDED)
+
+    suspend fun getPaymentsByUserId(userId: String): Resource<List<Payment>> = try {
+        val snapshot = paymentsRef.orderByChild("userId").equalTo(userId).get().await()
+        val payments = snapshot.children
+            .mapNotNull { it.getValue(Payment::class.java) }
+            .sortedByDescending { it.transactionDate }
+        Resource.Success(payments)
+    } catch (e: Exception) {
+        Resource.Error(e.message ?: "Failed to fetch payment history", e)
+    }
 }

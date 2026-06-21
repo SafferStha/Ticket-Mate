@@ -13,7 +13,9 @@ class UserRepositoryImpl @Inject constructor(
     private val userDataSource: FirebaseUserDataSource
 ) : UserRepository {
 
-    override suspend fun getUserProfile(uid: String): Resource<User>             = userDataSource.getUserProfile(uid)
-    override suspend fun updateUserProfile(user: User): Resource<Unit>           = userDataSource.updateUserProfile(user)
+    override suspend fun getUserProfile(uid: String): Resource<User>                       = userDataSource.getUserProfile(uid)
+    override suspend fun updateUserProfile(user: User): Resource<Unit>                    = userDataSource.updateUserProfile(user)
     override suspend fun uploadProfileImage(uid: String, imageUri: Uri): Resource<String> = userDataSource.uploadProfileImage(uid, imageUri)
+    override suspend fun getFavoriteEventIds(uid: String): Resource<List<String>>         = userDataSource.getFavoriteEventIds(uid)
+    override suspend fun removeFavorite(uid: String, eventId: String): Resource<Unit>     = userDataSource.removeFavorite(uid, eventId)
 }

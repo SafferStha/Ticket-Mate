@@ -99,4 +99,7 @@ class PaymentRepositoryImpl @Inject constructor(
 
         return Resource.Success(Unit)
     }
+
+    override suspend fun fetchPaymentsByUser(userId: String): Resource<List<Payment>> =
+        paymentDataSource.getPaymentsByUserId(userId)
 }

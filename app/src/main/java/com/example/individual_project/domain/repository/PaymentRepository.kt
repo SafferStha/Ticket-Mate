@@ -27,4 +27,7 @@ interface PaymentRepository {
 
     /** Marks payment REFUNDED and booking CANCELLED. */
     suspend fun refundPayment(paymentId: String): Resource<Unit>
+
+    /** All payments made by this user, newest-first. */
+    suspend fun fetchPaymentsByUser(userId: String): Resource<List<Payment>>
 }
