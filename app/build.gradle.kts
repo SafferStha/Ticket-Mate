@@ -68,6 +68,7 @@ dependencies {
 
     // ── Coroutines ────────────────────────────────────────────────────────────
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.coroutines.play.services)
 
     // ── Image Loading ─────────────────────────────────────────────────────────
     implementation(libs.coil.compose)

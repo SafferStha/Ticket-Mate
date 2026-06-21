@@ -93,6 +93,7 @@ fun IndividualProjectTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography  = Typography,
+        shapes      = TmShapes,
         content     = content
     )
 }

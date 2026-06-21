@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,6 +31,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,9 +44,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.individual_project.ui.theme.IndividualProjectTheme
@@ -55,13 +59,27 @@ import com.example.individual_project.ui.theme.TmNavyBlue
 import com.example.individual_project.ui.theme.TmSuccess
 import com.example.individual_project.ui.theme.TmTextPrimary
 import com.example.individual_project.ui.theme.TmTextSecondary
+import com.example.individual_project.ui.viewmodel.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ForgotPasswordScreen(navController: NavController) {
+fun ForgotPasswordScreen(
+    navController: NavController,
+    viewModel    : AuthViewModel = hiltViewModel()
+) {
     var email      by remember { mutableStateOf("") }
     var emailError by remember { mutableStateOf("") }
     var emailSent  by remember { mutableStateOf(false) }
+
+    val resetState by viewModel.resetState.collectAsState()
+
+    // Flip to success view when Firebase confirms the email was sent
+    LaunchedEffect(resetState.data) {
+        if (resetState.data != null) {
+            emailSent = true
+            viewModel.clearResetState()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -73,8 +91,8 @@ fun ForgotPasswordScreen(navController: NavController) {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor         = TmNavyBlue,
-                    titleContentColor      = Color.White,
+                    containerColor             = TmNavyBlue,
+                    titleContentColor          = Color.White,
                     navigationIconContentColor = Color.White
                 )
             )
@@ -185,10 +203,7 @@ fun ForgotPasswordScreen(navController: NavController) {
                     Spacer(modifier = Modifier.height(16.dp))
 
                     TextButton(onClick = { emailSent = false; email = "" }) {
-                        Text(
-                            text  = "Try a different email",
-                            color = TmBlue
-                        )
+                        Text(text = "Try a different email", color = TmBlue)
                     }
 
                 } else {
@@ -231,7 +246,22 @@ fun ForgotPasswordScreen(navController: NavController) {
                         singleLine = true
                     )
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Firebase error
+                    if (resetState.hasError) {
+                        Text(
+                            text      = resetState.error ?: "",
+                            color     = TmError,
+                            fontSize  = 13.sp,
+                            textAlign = TextAlign.Center,
+                            modifier  = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Button(
                         onClick = {
@@ -240,20 +270,30 @@ fun ForgotPasswordScreen(navController: NavController) {
                                     emailError = "Email is required"
                                 !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches() ->
                                     emailError = "Enter a valid email address"
-                                else -> emailSent = true
+                                else ->
+                                    viewModel.sendPasswordReset(email)
                             }
                         },
+                        enabled  = !resetState.isLoading,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(54.dp),
                         shape  = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = TmBlue)
                     ) {
-                        Text(
-                            text       = "Send Reset Link",
-                            fontSize   = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        if (resetState.isLoading) {
+                            CircularProgressIndicator(
+                                color       = Color.White,
+                                strokeWidth = 2.dp,
+                                modifier    = Modifier.height(20.dp).padding(horizontal = 4.dp)
+                            )
+                        } else {
+                            Text(
+                                text       = "Send Reset Link",
+                                fontSize   = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -282,11 +322,6 @@ fun ForgotPasswordScreen(navController: NavController) {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Previews
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Input state (default) */
 @Preview(name = "Forgot Password – Input", showBackground = true, showSystemUi = true)
 @Composable
 fun ForgotPasswordInputPreview() {
