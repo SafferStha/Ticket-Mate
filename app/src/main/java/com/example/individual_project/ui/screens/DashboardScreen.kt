@@ -11,21 +11,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
 import com.example.individual_project.ui.components.TmBottomNavigationBar
+import com.example.individual_project.ui.navigation.Screen
 import com.example.individual_project.ui.screens.home.HomeScreen
 import com.example.individual_project.ui.screens.home.MyTicketsScreen
 import com.example.individual_project.ui.screens.home.ProfileScreen
 import com.example.individual_project.ui.screens.home.SearchScreen
 
 /**
- * Thin coordinator screen — only owns tab selection state and bottom nav.
- * Each tab is a standalone screen composable with its own state.
- * Phase 5: inject ViewModels here and pass state down to tab screens.
+ * Thin coordinator — owns bottom-nav tab state only.
+ * Each tab screen owns its own ViewModel via hiltViewModel().
+ * Event click callbacks bubble up here so DashboardScreen controls outer navigation.
  */
 @Composable
 fun DashboardScreen(navController: NavController) {
-    var selectedTab      by remember { mutableStateOf(0) }
-    var searchQuery      by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf("All") }
+    var selectedTab by remember { mutableStateOf(0) }
+
+    val onEventClick: (String) -> Unit = { eventId ->
+        navController.navigate(Screen.EventDetail.createRoute(eventId))
+    }
 
     Scaffold(
         bottomBar = {
@@ -37,14 +40,8 @@ fun DashboardScreen(navController: NavController) {
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding)) {
             when (selectedTab) {
-                0 -> HomeScreen(
-                    selectedCategory = selectedCategory,
-                    onCategoryChange = { selectedCategory = it }
-                )
-                1 -> SearchScreen(
-                    searchQuery   = searchQuery,
-                    onQueryChange = { searchQuery = it }
-                )
+                0 -> HomeScreen(onEventClick = onEventClick)
+                1 -> SearchScreen(onEventClick = onEventClick)
                 2 -> MyTicketsScreen()
                 3 -> ProfileScreen(navController = navController)
             }

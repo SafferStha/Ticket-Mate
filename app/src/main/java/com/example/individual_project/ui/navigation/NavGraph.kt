@@ -2,13 +2,16 @@ package com.example.individual_project.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.example.individual_project.ui.screens.DashboardScreen
 import com.example.individual_project.ui.screens.ForgotPasswordScreen
 import com.example.individual_project.ui.screens.LoginScreen
 import com.example.individual_project.ui.screens.RegisterScreen
 import com.example.individual_project.ui.screens.SplashScreen
+import com.example.individual_project.ui.screens.home.EventDetailScreen
 
 @Composable
 fun NavGraph(navController: NavHostController) {
@@ -16,17 +19,21 @@ fun NavGraph(navController: NavHostController) {
         navController    = navController,
         startDestination = Screen.Splash.route
     ) {
+        // ── Auth flow ──────────────────────────────────────────────────────
         composable(Screen.Splash.route)         { SplashScreen(navController) }
         composable(Screen.Login.route)          { LoginScreen(navController) }
         composable(Screen.Register.route)       { RegisterScreen(navController) }
         composable(Screen.ForgotPassword.route) { ForgotPasswordScreen(navController) }
-        composable(Screen.Dashboard.route)      { DashboardScreen(navController) }
 
-        // Placeholders – wired in Phase 5 when ViewModels are ready
-        // composable(Screen.Onboarding.route)   { OnboardingScreen(navController) }
-        // composable(Screen.EventDetail.route)  { EventDetailScreen(navController, it.arguments?.getString("eventId")) }
-        // composable(Screen.Booking.route)      { BookingScreen(navController, it.arguments?.getString("eventId")) }
-        // composable(Screen.Checkout.route)     { CheckoutScreen(navController, it.arguments?.getString("bookingId")) }
-        // composable(Screen.Categories.route)   { CategoriesScreen(navController) }
+        // ── Main app ───────────────────────────────────────────────────────
+        composable(Screen.Dashboard.route) { DashboardScreen(navController) }
+
+        // ── Event detail ───────────────────────────────────────────────────
+        composable(
+            route     = Screen.EventDetail.route,
+            arguments = listOf(navArgument("eventId") { type = NavType.StringType })
+        ) {
+            EventDetailScreen(navController = navController)
+        }
     }
 }
