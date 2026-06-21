@@ -18,10 +18,10 @@ class FirebaseBookingDataSource @Inject constructor(
 ) {
     private val bookingsRef get() = database.getReference("bookings")
 
-    suspend fun bookTicket(booking: Booking): Resource<String> = try {
+    suspend fun createBooking(booking: Booking): Resource<String> = try {
         val key = bookingsRef.push().key
             ?: return Resource.Error("Failed to generate booking id")
-        val bookingWithId = booking.copy(bookingId = key)
+        val bookingWithId = booking.copy(id = key)
         bookingsRef.child(key).setValue(bookingWithId).await()
         Resource.Success(key)
     } catch (e: Exception) {
@@ -36,8 +36,17 @@ class FirebaseBookingDataSource @Inject constructor(
         Resource.Error(e.message ?: "Failed to fetch bookings", e)
     }
 
+    suspend fun getBookingById(bookingId: String): Resource<Booking> = try {
+        val snapshot = bookingsRef.child(bookingId).get().await()
+        val booking  = snapshot.getValue(Booking::class.java)
+            ?: return Resource.Error("Booking not found: $bookingId")
+        Resource.Success(booking)
+    } catch (e: Exception) {
+        Resource.Error(e.message ?: "Failed to fetch booking", e)
+    }
+
     suspend fun cancelBooking(bookingId: String): Resource<Unit> = try {
-        bookingsRef.child(bookingId).child("status").setValue("cancelled").await()
+        bookingsRef.child(bookingId).child("bookingStatus").setValue("CANCELLED").await()
         Resource.Success(Unit)
     } catch (e: Exception) {
         Resource.Error(e.message ?: "Failed to cancel booking", e)

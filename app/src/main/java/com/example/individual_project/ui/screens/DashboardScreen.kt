@@ -12,8 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
 import com.example.individual_project.ui.components.TmBottomNavigationBar
 import com.example.individual_project.ui.navigation.Screen
+import com.example.individual_project.ui.screens.booking.MyBookingsScreen
 import com.example.individual_project.ui.screens.home.HomeScreen
-import com.example.individual_project.ui.screens.home.MyTicketsScreen
 import com.example.individual_project.ui.screens.home.ProfileScreen
 import com.example.individual_project.ui.screens.home.SearchScreen
 
@@ -42,7 +42,7 @@ fun DashboardScreen(navController: NavController) {
             when (selectedTab) {
                 0 -> HomeScreen(onEventClick = onEventClick)
                 1 -> SearchScreen(onEventClick = onEventClick)
-                2 -> MyTicketsScreen()
+                2 -> MyBookingsScreen(navController = navController)
                 3 -> ProfileScreen(navController = navController)
             }
         }

@@ -18,6 +18,10 @@ import com.example.individual_project.ui.screens.LoginScreen
 import com.example.individual_project.ui.screens.RegisterScreen
 import com.example.individual_project.ui.screens.SplashScreen
 import com.example.individual_project.ui.screens.VerifyEmailScreen
+import com.example.individual_project.ui.screens.booking.BookingConfirmationScreen
+import com.example.individual_project.ui.screens.booking.BookingScreen
+import com.example.individual_project.ui.screens.booking.BookingSuccessScreen
+import com.example.individual_project.ui.screens.booking.MyBookingsScreen
 import com.example.individual_project.ui.screens.home.EventDetailScreen
 import com.example.individual_project.ui.viewmodel.AuthViewModel
 
@@ -48,6 +52,49 @@ fun NavGraph(navController: NavHostController) {
         ) {
             AuthGuard(navController) {
                 EventDetailScreen(navController = navController)
+            }
+        }
+
+        // ── Booking flow ─────────────────────────────────────────────────────
+        composable(
+            route     = Screen.Booking.route,
+            arguments = listOf(navArgument("eventId") { type = NavType.StringType })
+        ) {
+            AuthGuard(navController) {
+                BookingScreen(navController = navController)
+            }
+        }
+
+        composable(
+            route     = Screen.BookingConfirmation.route,
+            arguments = listOf(
+                navArgument("eventId")  { type = NavType.StringType },
+                navArgument("quantity") { type = NavType.IntType }
+            )
+        ) { backStackEntry ->
+            AuthGuard(navController) {
+                val eventId  = backStackEntry.arguments?.getString("eventId") ?: ""
+                val quantity = backStackEntry.arguments?.getInt("quantity") ?: 1
+                BookingConfirmationScreen(
+                    navController = navController,
+                    eventId       = eventId,
+                    quantity      = quantity
+                )
+            }
+        }
+
+        composable(
+            route     = Screen.BookingSuccess.route,
+            arguments = listOf(navArgument("bookingId") { type = NavType.StringType })
+        ) {
+            AuthGuard(navController) {
+                BookingSuccessScreen(navController = navController)
+            }
+        }
+
+        composable(Screen.MyBookings.route) {
+            AuthGuard(navController) {
+                MyBookingsScreen(navController = navController)
             }
         }
     }

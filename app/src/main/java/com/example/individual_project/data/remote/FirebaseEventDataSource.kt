@@ -2,10 +2,16 @@ package com.example.individual_project.data.remote
 
 import com.example.individual_project.data.model.Event
 import com.example.individual_project.utils.Resource
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.MutableData
+import com.google.firebase.database.Transaction
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.resume
 
 /**
  * Owns all Realtime Database operations under the "events/" node.
@@ -24,7 +30,11 @@ import javax.inject.Singleton
 class FirebaseEventDataSource @Inject constructor(
     private val database: FirebaseDatabase
 ) {
-    private val eventsRef get() = database.getReference("events")
+    private val eventsRef    get() = database.getReference("events")
+    private val favoritesRef get() = database.getReference("favorites")
+
+    private fun favRef(userId: String, eventId: String) =
+        favoritesRef.child(userId).child(eventId)
 
     suspend fun getAllEvents(): Resource<List<Event>> = try {
         val snapshot = eventsRef.get().await()
@@ -111,4 +121,73 @@ class FirebaseEventDataSource @Inject constructor(
     } catch (e: Exception) {
         Resource.Error(e.message ?: "Failed to delete event", e)
     }
+
+    // ── Favorites ──────────────────────────────────────────────────────────────
+    // Stored as favorites/{uid}/{eventId} = true (absent means not favorited).
+
+    suspend fun isFavorite(eventId: String, userId: String): Resource<Boolean> = try {
+        val snapshot = favRef(userId, eventId).get().await()
+        Resource.Success(snapshot.exists() && snapshot.getValue(Boolean::class.java) == true)
+    } catch (e: Exception) {
+        Resource.Error(e.message ?: "Failed to check favorite status", e)
+    }
+
+    // Read-modify-write: removes the node if it exists, sets true if it doesn't.
+    suspend fun toggleFavorite(eventId: String, userId: String): Resource<Unit> = try {
+        val ref      = favRef(userId, eventId)
+        val snapshot = ref.get().await()
+        if (snapshot.exists()) ref.removeValue().await() else ref.setValue(true).await()
+        Resource.Success(Unit)
+    } catch (e: Exception) {
+        Resource.Error(e.message ?: "Failed to toggle favorite", e)
+    }
+
+    // ── Seat management (atomic via Firebase transaction) ──────────────────────
+    // Transaction aborts — and returns Error — if available seats < requested quantity.
+    suspend fun deductSeats(eventId: String, quantity: Int): Resource<Unit> =
+        suspendCancellableCoroutine { cont ->
+            eventsRef.child(eventId).child("availableSeats")
+                .runTransaction(object : Transaction.Handler {
+                    override fun doTransaction(currentData: MutableData): Transaction.Result {
+                        val current = currentData.getValue(Int::class.java) ?: 0
+                        if (current < quantity) return Transaction.abort()
+                        currentData.value = current - quantity
+                        return Transaction.success(currentData)
+                    }
+
+                    override fun onComplete(
+                        error     : DatabaseError?,
+                        committed : Boolean,
+                        snapshot  : DataSnapshot?
+                    ) {
+                        when {
+                            error != null -> cont.resume(Resource.Error(error.message))
+                            !committed    -> cont.resume(Resource.Error("Not enough seats available"))
+                            else          -> cont.resume(Resource.Success(Unit))
+                        }
+                    }
+                })
+        }
+
+    // Restores seats after cancellation. Also atomic to prevent count drift.
+    suspend fun restoreSeats(eventId: String, quantity: Int): Resource<Unit> =
+        suspendCancellableCoroutine { cont ->
+            eventsRef.child(eventId).child("availableSeats")
+                .runTransaction(object : Transaction.Handler {
+                    override fun doTransaction(currentData: MutableData): Transaction.Result {
+                        val current = currentData.getValue(Int::class.java) ?: 0
+                        currentData.value = current + quantity
+                        return Transaction.success(currentData)
+                    }
+
+                    override fun onComplete(
+                        error     : DatabaseError?,
+                        committed : Boolean,
+                        snapshot  : DataSnapshot?
+                    ) {
+                        if (error != null) cont.resume(Resource.Error(error.message))
+                        else cont.resume(Resource.Success(Unit))
+                    }
+                })
+        }
 }

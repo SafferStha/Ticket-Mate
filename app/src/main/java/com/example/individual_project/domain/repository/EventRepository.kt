@@ -16,4 +16,12 @@ interface EventRepository {
     suspend fun createEvent(event: Event): Resource<String>
     suspend fun updateEvent(event: Event): Resource<Unit>
     suspend fun deleteEvent(eventId: String): Resource<Unit>
+
+    // ── Favorites (per-user, stored at favorites/{uid}/{eventId}) ──────────────
+    suspend fun toggleFavorite(eventId: String, userId: String): Resource<Unit>
+    suspend fun isFavorite(eventId: String, userId: String): Resource<Boolean>
+
+    // ── Seat management (atomic transactions) ──────────────────────────────────
+    suspend fun deductSeats(eventId: String, quantity: Int): Resource<Unit>
+    suspend fun restoreSeats(eventId: String, quantity: Int): Resource<Unit>
 }

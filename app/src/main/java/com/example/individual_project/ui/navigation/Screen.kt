@@ -21,11 +21,27 @@ sealed class Screen(val route: String) {
     object EventDetail    : Screen("event_detail/{eventId}") {
         fun createRoute(eventId: String) = "event_detail/$eventId"
     }
-    object Booking        : Screen("booking/{eventId}") {
+
+    // ─── Booking flow ─────────────────────────────────────────────────────────
+    object Booking : Screen("booking/{eventId}") {
         fun createRoute(eventId: String) = "booking/$eventId"
     }
-    object Checkout       : Screen("checkout/{bookingId}") {
+
+    // eventId + quantity passed so ConfirmationScreen can create the booking
+    object BookingConfirmation : Screen("booking_confirmation/{eventId}/{quantity}") {
+        fun createRoute(eventId: String, quantity: Int) =
+            "booking_confirmation/$eventId/$quantity"
+    }
+
+    object BookingSuccess : Screen("booking_success/{bookingId}") {
+        fun createRoute(bookingId: String) = "booking_success/$bookingId"
+    }
+
+    object MyBookings : Screen("my_bookings")
+
+    // ─── Legacy (unused) ──────────────────────────────────────────────────────
+    object Checkout    : Screen("checkout/{bookingId}") {
         fun createRoute(bookingId: String) = "checkout/$bookingId"
     }
-    object Categories     : Screen("categories")
+    object Categories  : Screen("categories")
 }
