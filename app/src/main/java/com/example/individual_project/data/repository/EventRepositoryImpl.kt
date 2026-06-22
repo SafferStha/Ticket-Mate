@@ -23,6 +23,11 @@ class EventRepositoryImpl @Inject constructor(
     override suspend fun deleteEvent(eventId: String): Resource<Unit>                = eventDataSource.deleteEvent(eventId)
     override suspend fun toggleFavorite(eventId: String, userId: String): Resource<Unit>  = eventDataSource.toggleFavorite(eventId, userId)
     override suspend fun isFavorite(eventId: String, userId: String): Resource<Boolean>   = eventDataSource.isFavorite(eventId, userId)
-    override suspend fun deductSeats(eventId: String, quantity: Int): Resource<Unit> = eventDataSource.deductSeats(eventId, quantity)
-    override suspend fun restoreSeats(eventId: String, quantity: Int): Resource<Unit> = eventDataSource.restoreSeats(eventId, quantity)
+    override suspend fun deductSeats(eventId: String, quantity: Int): Resource<Unit>      = eventDataSource.deductSeats(eventId, quantity)
+    override suspend fun restoreSeats(eventId: String, quantity: Int): Resource<Unit>     = eventDataSource.restoreSeats(eventId, quantity)
+
+    // ── Discovery ──────────────────────────────────────────────────────────────
+    override suspend fun getTrendingEvents(): Resource<List<Event>>                       = eventDataSource.getTrendingEvents()
+    override suspend fun getRecommendedEvents(userId: String): Resource<List<Event>>      = eventDataSource.getRecommendedEvents(userId)
+    override suspend fun getEventsByCity(city: String): Resource<List<Event>>             = eventDataSource.getEventsByCity(city)
 }

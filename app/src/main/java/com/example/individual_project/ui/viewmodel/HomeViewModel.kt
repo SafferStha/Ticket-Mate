@@ -6,6 +6,7 @@ import com.example.individual_project.data.model.Event
 import com.example.individual_project.domain.repository.EventRepository
 import com.example.individual_project.ui.model.UiState
 import com.example.individual_project.utils.Resource
+import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,12 +16,30 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val eventRepository: EventRepository
+    private val eventRepository : EventRepository,
+    private val auth            : FirebaseAuth
 ) : ViewModel() {
 
     // ── Featured events (horizontal carousel) ──────────────────────────────────
     private val _featuredState = MutableStateFlow(UiState<List<Event>>())
     val featuredState: StateFlow<UiState<List<Event>>> = _featuredState.asStateFlow()
+
+    // ── Trending Now (horizontal carousel) ─────────────────────────────────────
+    private val _trendingState = MutableStateFlow(UiState<List<Event>>())
+    val trendingState: StateFlow<UiState<List<Event>>> = _trendingState.asStateFlow()
+
+    // ── Recommended for You (horizontal carousel, shown when non-empty) ─────────
+    private val _recommendedState = MutableStateFlow(UiState<List<Event>>())
+    val recommendedState: StateFlow<UiState<List<Event>>> = _recommendedState.asStateFlow()
+
+    // ── Near You (horizontal carousel, driven by selectedCity) ─────────────────
+    private val _nearbyState = MutableStateFlow(UiState<List<Event>>())
+    val nearbyState: StateFlow<UiState<List<Event>>> = _nearbyState.asStateFlow()
+
+    private val _selectedCity = MutableStateFlow("")
+    val selectedCity: StateFlow<String> = _selectedCity.asStateFlow()
+
+    val availableCities = listOf("Kathmandu", "Pokhara", "Lalitpur", "Butwal", "Biratnagar")
 
     // ── All / category-filtered events (vertical list) ─────────────────────────
     private val _eventsState = MutableStateFlow(UiState<List<Event>>())
@@ -34,7 +53,7 @@ class HomeViewModel @Inject constructor(
     private val _selectedCategory = MutableStateFlow("All")
     val selectedCategory: StateFlow<String> = _selectedCategory.asStateFlow()
 
-    // ── Search ─────────────────────────────────────────────────────────────────
+    // ── Search (kept for HomeScreen search bar redirect awareness) ─────────────
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
@@ -44,6 +63,8 @@ class HomeViewModel @Inject constructor(
     init {
         loadFeaturedEvents()
         loadAllEvents()
+        loadTrendingEvents()
+        loadRecommendedEvents()
     }
 
     // ── Public actions ─────────────────────────────────────────────────────────
@@ -53,19 +74,37 @@ class HomeViewModel @Inject constructor(
         if (category == "All") loadAllEvents() else loadByCategory(category)
     }
 
+    fun selectCity(city: String) {
+        _selectedCity.value = if (_selectedCity.value == city) "" else city
+        if (_selectedCity.value.isNotEmpty()) {
+            loadNearbyEvents(_selectedCity.value)
+        } else {
+            _nearbyState.value = UiState()
+        }
+    }
+
     fun onSearchQueryChange(query: String) {
         _searchQuery.value = query
         if (query.isBlank()) {
             _searchResults.value = UiState()
         } else {
-            searchEvents(query)
+            viewModelScope.launch {
+                _searchResults.value = UiState(isLoading = true)
+                _searchResults.value = when (val r = eventRepository.searchEvents(query)) {
+                    is Resource.Success -> UiState(data = r.data)
+                    is Resource.Error   -> UiState(error = r.message)
+                    else                -> UiState(error = "Search failed")
+                }
+            }
         }
     }
 
     fun refresh() {
         loadFeaturedEvents()
-        if (_selectedCategory.value == "All") loadAllEvents()
-        else loadByCategory(_selectedCategory.value)
+        loadTrendingEvents()
+        loadRecommendedEvents()
+        if (_selectedCity.value.isNotEmpty()) loadNearbyEvents(_selectedCity.value)
+        if (_selectedCategory.value == "All") loadAllEvents() else loadByCategory(_selectedCategory.value)
     }
 
     // ── Private loaders ────────────────────────────────────────────────────────
@@ -77,6 +116,40 @@ class HomeViewModel @Inject constructor(
                 is Resource.Success -> UiState(data = r.data)
                 is Resource.Error   -> UiState(error = r.message)
                 else                -> UiState(error = "Unexpected error loading featured events")
+            }
+        }
+    }
+
+    private fun loadTrendingEvents() {
+        viewModelScope.launch {
+            _trendingState.value = UiState(isLoading = true)
+            _trendingState.value = when (val r = eventRepository.getTrendingEvents()) {
+                is Resource.Success -> UiState(data = r.data)
+                is Resource.Error   -> UiState(error = r.message)
+                else                -> UiState(error = "Unexpected error loading trending events")
+            }
+        }
+    }
+
+    private fun loadRecommendedEvents() {
+        val uid = auth.currentUser?.uid ?: return
+        viewModelScope.launch {
+            _recommendedState.value = UiState(isLoading = true)
+            _recommendedState.value = when (val r = eventRepository.getRecommendedEvents(uid)) {
+                is Resource.Success -> UiState(data = r.data)
+                is Resource.Error   -> UiState(error = r.message)
+                else                -> UiState(error = "Unexpected error loading recommendations")
+            }
+        }
+    }
+
+    private fun loadNearbyEvents(city: String) {
+        viewModelScope.launch {
+            _nearbyState.value = UiState(isLoading = true)
+            _nearbyState.value = when (val r = eventRepository.getEventsByCity(city)) {
+                is Resource.Success -> UiState(data = r.data)
+                is Resource.Error   -> UiState(error = r.message)
+                else                -> UiState(error = "Unexpected error loading nearby events")
             }
         }
     }
@@ -99,17 +172,6 @@ class HomeViewModel @Inject constructor(
                 is Resource.Success -> UiState(data = r.data)
                 is Resource.Error   -> UiState(error = r.message)
                 else                -> UiState(error = "Unexpected error")
-            }
-        }
-    }
-
-    private fun searchEvents(query: String) {
-        viewModelScope.launch {
-            _searchResults.value = UiState(isLoading = true)
-            _searchResults.value = when (val r = eventRepository.searchEvents(query)) {
-                is Resource.Success -> UiState(data = r.data)
-                is Resource.Error   -> UiState(error = r.message)
-                else                -> UiState(error = "Search failed")
             }
         }
     }

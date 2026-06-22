@@ -1,6 +1,7 @@
 package com.example.individual_project.ui.screens.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,14 +13,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -39,7 +43,6 @@ import com.example.individual_project.ui.components.FeaturedEventCard
 import com.example.individual_project.ui.components.LoadingView
 import com.example.individual_project.ui.components.ProfileAvatar
 import com.example.individual_project.ui.components.SectionHeader
-import com.example.individual_project.ui.components.TmSearchBar
 import com.example.individual_project.ui.model.toUiModel
 import com.example.individual_project.ui.theme.Spacing
 import com.example.individual_project.ui.theme.TmDarkBlue
@@ -49,23 +52,34 @@ import com.example.individual_project.ui.viewmodel.HomeViewModel
 
 @Composable
 fun HomeScreen(
-    onEventClick : (String) -> Unit = {},
-    viewModel    : HomeViewModel    = hiltViewModel()
+    onEventClick  : (String) -> Unit = {},
+    onSearchClick : () -> Unit       = {},
+    viewModel     : HomeViewModel    = hiltViewModel()
 ) {
     val featuredState    by viewModel.featuredState.collectAsState()
+    val trendingState    by viewModel.trendingState.collectAsState()
+    val recommendedState by viewModel.recommendedState.collectAsState()
+    val nearbyState      by viewModel.nearbyState.collectAsState()
     val eventsState      by viewModel.eventsState.collectAsState()
     val categories       by viewModel.categories.collectAsState()
     val selectedCategory by viewModel.selectedCategory.collectAsState()
+    val selectedCity     by viewModel.selectedCity.collectAsState()
 
-    val featuredList = featuredState.data?.map { it.toUiModel() } ?: emptyList()
-    val eventsList   = eventsState.data?.map { it.toUiModel() }   ?: emptyList()
+    val featuredList    = featuredState.data?.map { it.toUiModel() }    ?: emptyList()
+    val trendingList    = trendingState.data?.map { it.toUiModel() }    ?: emptyList()
+    val recommendedList = recommendedState.data?.map { it.toUiModel() } ?: emptyList()
+    val nearbyList      = nearbyState.data?.map { it.toUiModel() }      ?: emptyList()
+    val eventsList      = eventsState.data?.map { it.toUiModel() }      ?: emptyList()
+
+    val eventsHeader = if (selectedCategory == "All") "All Events" else selectedCategory
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // ── Header ────────────────────────────────────────────────────────
+
+        // ── Header ────────────────────────────────────────────────────────────
         item {
             Box(
                 modifier = Modifier
@@ -113,7 +127,7 @@ fun HomeScreen(
             }
         }
 
-        // ── Search bar ────────────────────────────────────────────────────
+        // ── Search bar: tappable placeholder → navigates to Search tab ────────
         item {
             Box(
                 modifier = Modifier
@@ -121,15 +135,41 @@ fun HomeScreen(
                     .background(TmNavyBlue)
                     .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm)
             ) {
-                TmSearchBar(value = "", onValueChange = {})
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape    = MaterialTheme.shapes.medium,
+                    color    = MaterialTheme.colorScheme.surface
+                ) {
+                    Row(
+                        modifier          = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = Spacing.md, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint               = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier           = Modifier.size(Spacing.iconMd)
+                        )
+                        Spacer(modifier = Modifier.width(Spacing.sm))
+                        Text(
+                            text  = "Search events, artists, venues…",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                // Transparent overlay intercepts all taps — navigates to Search tab
+                Box(modifier = Modifier.matchParentSize().clickable { onSearchClick() })
             }
         }
 
-        // ── Featured Events ────────────────────────────────────────────────
+        // ── Featured Events ───────────────────────────────────────────────────
         item {
             Column(modifier = Modifier.background(MaterialTheme.colorScheme.background)) {
                 SectionHeader(
-                    title         = "🔥 Featured Events",
+                    title         = "🌟 Featured Events",
                     onActionClick = {},
                     modifier      = Modifier.padding(
                         horizontal = Spacing.screenHorizontal,
@@ -138,23 +178,19 @@ fun HomeScreen(
                 )
                 when {
                     featuredState.isLoading -> LoadingView(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(180.dp)
+                        modifier = Modifier.fillMaxWidth().height(180.dp)
                     )
                     featuredState.hasError  -> ErrorView(
                         message  = featuredState.error ?: "Failed to load featured events",
                         onRetry  = { viewModel.refresh() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(180.dp)
+                        modifier = Modifier.fillMaxWidth().height(180.dp)
                     )
                     featuredList.isEmpty()  -> EmptyState(
                         emoji    = "🌟",
                         title    = "No featured events",
                         subtitle = "Check back soon for featured events"
                     )
-                    else -> LazyRow(
+                    else                    -> LazyRow(
                         contentPadding        = PaddingValues(horizontal = Spacing.screenHorizontal),
                         horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                     ) {
@@ -170,7 +206,7 @@ fun HomeScreen(
             }
         }
 
-        // ── Categories ────────────────────────────────────────────────────
+        // ── Browse Categories ─────────────────────────────────────────────────
         item {
             Column(modifier = Modifier.padding(top = Spacing.md)) {
                 Text(
@@ -196,34 +232,139 @@ fun HomeScreen(
             }
         }
 
-        // ── Trending Events header ─────────────────────────────────────────
+        // ── Trending Now ──────────────────────────────────────────────────────
+        if (trendingState.isLoading || trendingList.isNotEmpty()) {
+            item {
+                Column(modifier = Modifier.padding(top = Spacing.md)) {
+                    SectionHeader(
+                        title         = "🔥 Trending Now",
+                        onActionClick = {},
+                        modifier      = Modifier.padding(
+                            horizontal = Spacing.screenHorizontal,
+                            vertical   = Spacing.sm
+                        )
+                    )
+                    if (trendingState.isLoading) {
+                        LoadingView(modifier = Modifier.fillMaxWidth().height(180.dp))
+                    } else {
+                        LazyRow(
+                            contentPadding        = PaddingValues(horizontal = Spacing.screenHorizontal),
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+                        ) {
+                            items(trendingList, key = { it.id }) { event ->
+                                FeaturedEventCard(
+                                    event   = event,
+                                    onClick = { onEventClick(event.id) }
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(Spacing.sm))
+                }
+            }
+        }
+
+        // ── Recommended for You ───────────────────────────────────────────────
+        if (recommendedList.isNotEmpty()) {
+            item {
+                Column(modifier = Modifier.padding(top = Spacing.sm)) {
+                    SectionHeader(
+                        title         = "✨ Recommended for You",
+                        onActionClick = {},
+                        modifier      = Modifier.padding(
+                            horizontal = Spacing.screenHorizontal,
+                            vertical   = Spacing.sm
+                        )
+                    )
+                    LazyRow(
+                        contentPadding        = PaddingValues(horizontal = Spacing.screenHorizontal),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+                    ) {
+                        items(recommendedList, key = { it.id }) { event ->
+                            EventCard(
+                                event    = event,
+                                onClick  = { onEventClick(event.id) },
+                                modifier = Modifier.width(300.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(Spacing.sm))
+                }
+            }
+        }
+
+        // ── Explore by City ───────────────────────────────────────────────────
+        item {
+            Column(modifier = Modifier.padding(top = Spacing.sm, bottom = Spacing.md)) {
+                SectionHeader(
+                    title    = "📍 Explore by City",
+                    modifier = Modifier.padding(
+                        horizontal = Spacing.screenHorizontal,
+                        vertical   = Spacing.sm
+                    )
+                )
+                LazyRow(
+                    contentPadding        = PaddingValues(horizontal = Spacing.screenHorizontal),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    items(viewModel.availableCities) { city ->
+                        CategoryChip(
+                            label      = city,
+                            isSelected = selectedCity == city,
+                            onClick    = { viewModel.selectCity(city) }
+                        )
+                    }
+                }
+
+                if (selectedCity.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(Spacing.md))
+                    when {
+                        nearbyState.isLoading -> LoadingView(
+                            modifier = Modifier.fillMaxWidth().height(140.dp)
+                        )
+                        nearbyList.isEmpty()  -> EmptyState(
+                            emoji    = "📍",
+                            title    = "No events in $selectedCity",
+                            subtitle = "Check back soon for local events"
+                        )
+                        else                  -> LazyRow(
+                            contentPadding        = PaddingValues(horizontal = Spacing.screenHorizontal),
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+                        ) {
+                            items(nearbyList, key = { it.id }) { event ->
+                                EventCard(
+                                    event    = event,
+                                    onClick  = { onEventClick(event.id) },
+                                    modifier = Modifier.width(300.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── All / Category Events ─────────────────────────────────────────────
         item {
             SectionHeader(
-                title         = "Trending Events",
+                title         = eventsHeader,
                 onActionClick = {},
                 modifier      = Modifier.padding(
                     horizontal = Spacing.screenHorizontal,
-                    vertical   = Spacing.md
+                    vertical   = Spacing.sm
                 )
             )
         }
 
-        // ── Events list (loading / error / empty / data) ───────────────────
         when {
             eventsState.isLoading -> item {
-                LoadingView(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(240.dp)
-                )
+                LoadingView(modifier = Modifier.fillMaxWidth().height(240.dp))
             }
             eventsState.hasError  -> item {
                 ErrorView(
                     message  = eventsState.error ?: "Failed to load events",
                     onRetry  = { viewModel.refresh() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(240.dp)
+                    modifier = Modifier.fillMaxWidth().height(240.dp)
                 )
             }
             eventsList.isEmpty()  -> item {

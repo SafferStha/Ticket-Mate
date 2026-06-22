@@ -12,6 +12,11 @@ interface EventRepository {
     suspend fun searchEvents(query: String): Resource<List<Event>>
     suspend fun filterByCategory(category: String): Resource<List<Event>>
 
+    // ── Discovery ──────────────────────────────────────────────────────────────
+    suspend fun getTrendingEvents(): Resource<List<Event>>
+    suspend fun getRecommendedEvents(userId: String): Resource<List<Event>>
+    suspend fun getEventsByCity(city: String): Resource<List<Event>>
+
     // ── CRUD (admin / organiser flows) ─────────────────────────────────────────
     suspend fun createEvent(event: Event): Resource<String>
     suspend fun updateEvent(event: Event): Resource<Unit>

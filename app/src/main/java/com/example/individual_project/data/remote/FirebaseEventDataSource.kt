@@ -169,6 +169,62 @@ class FirebaseEventDataSource @Inject constructor(
                 })
         }
 
+    // ── Discovery ──────────────────────────────────────────────────────────────
+
+    // Trending: most recently added events (Firebase push keys are time-ordered).
+    // Reversed so newest items appear first. Replace with bookingCount ordering in v2.
+    suspend fun getTrendingEvents(): Resource<List<Event>> = try {
+        val snapshot = eventsRef.limitToLast(10).get().await()
+        val events   = snapshot.children
+            .mapNotNull { it.getValue(Event::class.java) }
+            .reversed()
+        Resource.Success(events)
+    } catch (e: Exception) {
+        Resource.Error(e.message ?: "Failed to fetch trending events", e)
+    }
+
+    // Recommended: events in categories the user has favorited.
+    // Falls back to featured events when the user has no favorites yet.
+    suspend fun getRecommendedEvents(userId: String): Resource<List<Event>> = try {
+        val favSnapshot = favoritesRef.child(userId).get().await()
+        val favEventIds = favSnapshot.children
+            .filter { it.getValue(Boolean::class.java) == true }
+            .mapNotNull { it.key }
+            .toSet()
+
+        if (favEventIds.isEmpty()) return getFeaturedEvents()
+
+        val favCategories = favEventIds.mapNotNull { eventId ->
+            eventsRef.child(eventId).child("category").get().await()
+                .getValue(String::class.java)
+        }.toSet()
+
+        if (favCategories.isEmpty()) return getFeaturedEvents()
+
+        val allSnapshot  = eventsRef.get().await()
+        val recommended  = allSnapshot.children
+            .mapNotNull { it.getValue(Event::class.java) }
+            .filter { it.category in favCategories && it.id !in favEventIds }
+            .take(10)
+
+        Resource.Success(
+            recommended.ifEmpty {
+                allSnapshot.children.mapNotNull { it.getValue(Event::class.java) }.take(5)
+            }
+        )
+    } catch (e: Exception) {
+        Resource.Error(e.message ?: "Failed to fetch recommendations", e)
+    }
+
+    // Server-side city filter. Add .indexOn: ["city"] to Firebase rules for performance.
+    suspend fun getEventsByCity(city: String): Resource<List<Event>> = try {
+        val snapshot = eventsRef.orderByChild("city").equalTo(city).get().await()
+        val events   = snapshot.children.mapNotNull { it.getValue(Event::class.java) }
+        Resource.Success(events)
+    } catch (e: Exception) {
+        Resource.Error(e.message ?: "Failed to fetch events by city", e)
+    }
+
     // Restores seats after cancellation. Also atomic to prevent count drift.
     suspend fun restoreSeats(eventId: String, quantity: Int): Resource<Unit> =
         suspendCancellableCoroutine { cont ->

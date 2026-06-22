@@ -40,7 +40,10 @@ fun DashboardScreen(navController: NavController) {
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding)) {
             when (selectedTab) {
-                0 -> HomeScreen(onEventClick = onEventClick)
+                0 -> HomeScreen(
+                    onEventClick  = onEventClick,
+                    onSearchClick = { selectedTab = 1 }
+                )
                 1 -> SearchScreen(onEventClick = onEventClick)
                 2 -> MyBookingsScreen(navController = navController)
                 3 -> ProfileScreen(navController = navController)

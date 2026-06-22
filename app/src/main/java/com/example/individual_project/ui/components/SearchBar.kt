@@ -1,6 +1,8 @@
 package com.example.individual_project.ui.components
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
@@ -13,13 +15,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.ImeAction
 
 @Composable
 fun TmSearchBar(
     value        : String,
     onValueChange: (String) -> Unit,
-    placeholder  : String   = "Search events, artists, venues…",
-    modifier     : Modifier = Modifier
+    placeholder  : String        = "Search events, artists, venues…",
+    onSearch     : (() -> Unit)? = null,
+    modifier     : Modifier      = Modifier
 ) {
     OutlinedTextField(
         value         = value,
@@ -49,6 +53,12 @@ fun TmSearchBar(
                 }
             }
         } else null,
+        keyboardOptions = KeyboardOptions(
+            imeAction = if (onSearch != null) ImeAction.Search else ImeAction.Default
+        ),
+        keyboardActions = KeyboardActions(
+            onSearch = { onSearch?.invoke() }
+        ),
         modifier   = modifier.fillMaxWidth(),
         shape      = MaterialTheme.shapes.medium,
         colors     = OutlinedTextFieldDefaults.colors(
