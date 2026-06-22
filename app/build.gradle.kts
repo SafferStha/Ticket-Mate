@@ -1,7 +1,9 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.parcelize)
     alias(libs.plugins.google.gms.google.services)
+    alias(libs.plugins.firebase.crashlytics)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.ksp)
 }
@@ -15,13 +17,18 @@ android {
         minSdk          = 29
         targetSdk       = 36
         versionCode     = 1
-        versionName     = "1.0"
+        versionName     = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
+        debug {
+            isDebuggable     = true
+            isMinifyEnabled  = false
+        }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled   = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -39,12 +46,13 @@ android {
     }
 
     buildFeatures {
-        compose = true
+        compose     = true
+        buildConfig = true
     }
 }
 
 dependencies {
-    // ── Compose BOM (pins all compose library versions) ───────────────────────
+    // ── Compose BOM (pins all Compose library versions) ───────────────────────
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
@@ -73,17 +81,28 @@ dependencies {
     // ── Image Loading ─────────────────────────────────────────────────────────
     implementation(libs.coil.compose)
 
-    // ── Firebase ──────────────────────────────────────────────────────────────
+    // ── Firebase BOM (pins all Firebase SDK versions) ─────────────────────────
+    implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.firebase.database)
     implementation(libs.firebase.storage)
+    implementation(libs.firebase.crashlytics.ktx)
+    implementation(libs.firebase.analytics.ktx)
 
-    // ── Testing ───────────────────────────────────────────────────────────────
+    // ── Unit Tests ────────────────────────────────────────────────────────────
     testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.turbine)
+    testImplementation(libs.androidx.arch.core.testing)
+
+    // ── Instrumented Tests ────────────────────────────────────────────────────
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
+
+    // ── Debug ─────────────────────────────────────────────────────────────────
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

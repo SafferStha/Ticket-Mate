@@ -1,0 +1,67 @@
+{
+  "rules": {
+
+    ".read":  false,
+    ".write": false,
+
+    "events": {
+      ".read": "auth != null",
+      ".write": false,
+      ".indexOn": ["category", "city", "date"],
+      "$eventId": {
+        ".read": "auth != null"
+      }
+    },
+
+    "users": {
+      "$uid": {
+        ".read":  "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid"
+      }
+    },
+
+    "bookings": {
+      ".indexOn": ["userId", "eventId"],
+      "$bookingId": {
+        ".read": "auth != null && data.child('userId').val() == auth.uid",
+        ".write": "auth != null && !data.exists() && newData.child('userId').val() == auth.uid"
+      }
+    },
+
+    "payments": {
+      ".indexOn": ["userId", "bookingId"],
+      "$paymentId": {
+        ".read": "auth != null && data.child('userId').val() == auth.uid",
+        ".write": "auth != null && !data.exists() && newData.child('userId').val() == auth.uid"
+      }
+    },
+
+    "tickets": {
+      ".indexOn": ["userId", "bookingId"],
+      "$ticketId": {
+        ".read": "auth != null && data.child('userId').val() == auth.uid",
+        ".write": "auth != null && !data.exists() && newData.child('userId').val() == auth.uid"
+      }
+    },
+
+    "favorites": {
+      "$uid": {
+        ".read":  "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid"
+      }
+    },
+
+    "search_history": {
+      "$uid": {
+        ".read":  "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid"
+      }
+    },
+
+    "trending_keywords": {
+      ".read":  "auth != null",
+      ".write": false
+    }
+
+  }
+}

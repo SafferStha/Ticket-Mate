@@ -1,5 +1,11 @@
 package com.example.individual_project.ui.navigation
 
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -35,11 +41,38 @@ import com.example.individual_project.ui.screens.profile.SettingsScreen
 import com.example.individual_project.ui.screens.profile.TicketDetailScreen
 import com.example.individual_project.ui.viewmodel.AuthViewModel
 
+private const val TRANSITION_DURATION = 300
+private const val FADE_EXIT_DURATION  = 150
+
 @Composable
 fun NavGraph(navController: NavHostController) {
     NavHost(
-        navController    = navController,
-        startDestination = Screen.Splash.route
+        navController      = navController,
+        startDestination   = Screen.Splash.route,
+        enterTransition    = {
+            slideInHorizontally(
+                initialOffsetX = { it },
+                animationSpec  = tween(TRANSITION_DURATION, easing = FastOutSlowInEasing)
+            ) + fadeIn(tween(TRANSITION_DURATION))
+        },
+        exitTransition     = {
+            slideOutHorizontally(
+                targetOffsetX = { -it / 3 },
+                animationSpec = tween(TRANSITION_DURATION, easing = FastOutSlowInEasing)
+            ) + fadeOut(tween(FADE_EXIT_DURATION))
+        },
+        popEnterTransition = {
+            slideInHorizontally(
+                initialOffsetX = { -it / 3 },
+                animationSpec  = tween(TRANSITION_DURATION, easing = FastOutSlowInEasing)
+            ) + fadeIn(tween(TRANSITION_DURATION))
+        },
+        popExitTransition  = {
+            slideOutHorizontally(
+                targetOffsetX = { it },
+                animationSpec = tween(TRANSITION_DURATION, easing = FastOutSlowInEasing)
+            ) + fadeOut(tween(FADE_EXIT_DURATION))
+        }
     ) {
         // ── Auth flow ────────────────────────────────────────────────────────
         composable(Screen.Splash.route)         { SplashScreen(navController) }
