@@ -1,4 +1,4 @@
-package com.example.individual_project.screens
+package com.example.individual_project.ui.screens
 
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -16,6 +16,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,12 +29,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.example.individual_project.navigation.Screen
+import com.example.individual_project.auth.AuthState
+import com.example.individual_project.ui.navigation.Screen
 import com.example.individual_project.ui.theme.IndividualProjectTheme
 import com.example.individual_project.ui.theme.TmBlue
 import com.example.individual_project.ui.theme.TmDarkBlue
@@ -41,11 +44,17 @@ import com.example.individual_project.ui.theme.TmLightBlue
 import com.example.individual_project.ui.theme.TmNavyBlue
 import com.example.individual_project.ui.theme.TmSurface
 import com.example.individual_project.ui.theme.TmTextHint
+import com.example.individual_project.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.delay
 
 @Composable
-fun SplashScreen(navController: NavController) {
-    var startAnimation by remember { mutableStateOf(false) }
+fun SplashScreen(
+    navController: NavController,
+    viewModel    : AuthViewModel = hiltViewModel()
+) {
+    var startAnimation  by remember { mutableStateOf(false) }
+    var minTimeElapsed  by remember { mutableStateOf(false) }
+    val authState       by viewModel.authState.collectAsState()
 
     val alpha by animateFloatAsState(
         targetValue   = if (startAnimation) 1f else 0f,
@@ -61,10 +70,24 @@ fun SplashScreen(navController: NavController) {
         label = "scale"
     )
 
+    // Enforce a minimum branding display time
     LaunchedEffect(Unit) {
         startAnimation = true
-        delay(2800L)
-        navController.navigate(Screen.Login.route) {
+        delay(2000L)
+        minTimeElapsed = true
+    }
+
+    // Navigate once both the minimum time has passed AND auth state is resolved
+    LaunchedEffect(authState, minTimeElapsed) {
+        if (!minTimeElapsed) return@LaunchedEffect
+        if (authState == AuthState.Loading) return@LaunchedEffect
+
+        val destination = when (authState) {
+            AuthState.Authenticated    -> Screen.Dashboard.route
+            AuthState.EmailNotVerified -> Screen.VerifyEmail.route
+            else                       -> Screen.Login.route
+        }
+        navController.navigate(destination) {
             popUpTo(Screen.Splash.route) { inclusive = true }
         }
     }
@@ -79,7 +102,7 @@ fun SplashScreen(navController: NavController) {
             ),
         contentAlignment = Alignment.Center
     ) {
-        // ── Centre content ──────────────────────────────────────────────
+        // ── Centre content ────────────────────────────────────────────────────
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
@@ -92,10 +115,10 @@ fun SplashScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text       = "TicketMate",
-                fontSize   = 44.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color      = TmSurface,
+                text          = "TicketMate",
+                fontSize      = 44.sp,
+                fontWeight    = FontWeight.ExtraBold,
+                color         = TmSurface,
                 letterSpacing = (-1).sp
             )
 
@@ -112,13 +135,13 @@ fun SplashScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(40.dp))
 
             LinearProgressIndicator(
-                modifier = Modifier.alpha(0.6f),
-                color    = TmLightBlue,
+                modifier   = Modifier.alpha(0.6f),
+                color      = TmLightBlue,
                 trackColor = Color.White.copy(alpha = 0.15f)
             )
         }
 
-        // ── Bottom copyright ─────────────────────────────────────────────
+        // ── Bottom copyright ──────────────────────────────────────────────────
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -134,10 +157,6 @@ fun SplashScreen(navController: NavController) {
         }
     }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Preview
-// ─────────────────────────────────────────────────────────────────────────────
 
 @Preview(name = "Splash Screen", showBackground = true, showSystemUi = true)
 @Composable

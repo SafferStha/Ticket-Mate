@@ -1,21 +1,60 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# ─────────────────────────────────────────────────────────────────────────────
+# Preserve line numbers and source file names for Crashlytics stack traces.
+# ─────────────────────────────────────────────────────────────────────────────
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# ─────────────────────────────────────────────────────────────────────────────
+# Firebase Realtime Database — data model classes are serialized/deserialized
+# via reflection. All fields must keep their original names.
+# ─────────────────────────────────────────────────────────────────────────────
+-keepclassmembers class com.example.individual_project.data.model.** {
+    public <init>();
+    public *;
+}
+-keep class com.example.individual_project.data.model.** { *; }
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# ─────────────────────────────────────────────────────────────────────────────
+# Firebase SDKs (Auth, Database, Storage, Crashlytics, Analytics)
+# ─────────────────────────────────────────────────────────────────────────────
+-keep class com.google.firebase.** { *; }
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.firebase.**
+-dontwarn com.google.android.gms.**
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# ─────────────────────────────────────────────────────────────────────────────
+# Crashlytics — preserve mapping metadata
+# ─────────────────────────────────────────────────────────────────────────────
+-keepattributes *Annotation*
+-keepattributes Signature
+-keepattributes Exceptions
+-keep class com.crashlytics.** { *; }
+-dontwarn com.crashlytics.**
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Hilt / Dagger — generated component classes must not be stripped
+# ─────────────────────────────────────────────────────────────────────────────
+-keep class dagger.hilt.** { *; }
+-keep class javax.inject.** { *; }
+-keep @dagger.hilt.android.HiltAndroidApp class * { *; }
+-keep @dagger.hilt.android.AndroidEntryPoint class * { *; }
+-dontwarn dagger.hilt.**
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Kotlin Coroutines
+# ─────────────────────────────────────────────────────────────────────────────
+-keepclassmembernames class kotlinx.** {
+    volatile <fields>;
+}
+-dontwarn kotlinx.coroutines.**
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Coil — image loading reflection hooks
+# ─────────────────────────────────────────────────────────────────────────────
+-dontwarn coil.**
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Jetpack Compose / AndroidX — handled by the library's own consumer rules,
+# but suppress any residual warnings from the optimizer.
+# ─────────────────────────────────────────────────────────────────────────────
+-dontwarn androidx.**

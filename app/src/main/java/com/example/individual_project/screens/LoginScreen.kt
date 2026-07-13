@@ -46,12 +46,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
-import android.widget.Toast
-import androidx.compose.ui.platform.LocalContext
-import com.example.individual_project.repo.UserRepoImpl
-import com.example.individual_project.viewmodel.UserViewModel
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.foundation.layout.size
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.individual_project.navigation.Screen
@@ -73,10 +67,6 @@ fun LoginScreen(navController: NavController) {
     var passwordVisible by remember { mutableStateOf(false) }
     var emailError      by remember { mutableStateOf("") }
     var passwordError   by remember { mutableStateOf("") }
-    var isLoading       by remember { mutableStateOf(false) }
-
-    val context = LocalContext.current
-    val userViewModel = remember { UserViewModel(UserRepoImpl()) }
 
     Column(
         modifier = Modifier
@@ -225,17 +215,8 @@ fun LoginScreen(navController: NavController) {
                         passwordError = "Minimum 6 characters required"; valid = false
                     }
                     if (valid) {
-                        isLoading = true
-                        userViewModel.login(email, password) { success, message ->
-                            isLoading = false
-                            if (success) {
-                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                                navController.navigate(Screen.Dashboard.route) {
-                                    popUpTo(Screen.Login.route) { inclusive = true }
-                                }
-                            } else {
-                                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-                            }
+                        navController.navigate(Screen.Dashboard.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
                         }
                     }
                 },
@@ -243,22 +224,13 @@ fun LoginScreen(navController: NavController) {
                     .fillMaxWidth()
                     .height(54.dp),
                 shape  = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = TmBlue),
-                enabled = !isLoading
+                colors = ButtonDefaults.buttonColors(containerColor = TmBlue)
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = Color.White,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text(
-                        text       = "Sign In",
-                        fontSize   = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                Text(
+                    text       = "Sign In",
+                    fontSize   = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))

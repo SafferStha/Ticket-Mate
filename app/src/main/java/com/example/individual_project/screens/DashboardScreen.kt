@@ -95,11 +95,6 @@ import com.example.individual_project.ui.theme.TmSuccess
 import com.example.individual_project.ui.theme.TmSurface
 import com.example.individual_project.ui.theme.TmTextPrimary
 import com.example.individual_project.ui.theme.TmTextSecondary
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.livedata.observeAsState
-import com.example.individual_project.repo.UserRepoImpl
-import com.example.individual_project.viewmodel.UserViewModel
-import com.google.firebase.auth.FirebaseAuth
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Data
@@ -144,16 +139,6 @@ fun DashboardScreen(navController: NavController) {
     var searchQuery  by remember { mutableStateOf("") }
     var selectedCat  by remember { mutableStateOf("All") }
 
-    val userViewModel = remember { UserViewModel(UserRepoImpl()) }
-    val currentUser = userViewModel.users.observeAsState()
-
-    LaunchedEffect(Unit) {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid
-        if (uid != null) {
-            userViewModel.getUserById(uid)
-        }
-    }
-
     data class NavItem(val icon: ImageVector, val label: String)
 
     val navItems = listOf(
@@ -189,10 +174,10 @@ fun DashboardScreen(navController: NavController) {
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding)) {
             when (selectedTab) {
-                0 -> HomeTab(selectedCat, onCategoryChange = { selectedCat = it }, userName = currentUser.value?.name ?: "User")
+                0 -> HomeTab(selectedCat, onCategoryChange = { selectedCat = it })
                 1 -> SearchTab(searchQuery, onQueryChange = { searchQuery = it })
                 2 -> MyTicketsTab()
-                3 -> ProfileTab(navController, userName = currentUser.value?.name ?: "User", userEmail = currentUser.value?.email ?: "user@email.com")
+                3 -> ProfileTab(navController)
             }
         }
     }
@@ -204,7 +189,7 @@ fun DashboardScreen(navController: NavController) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeTab(selectedCategory: String, onCategoryChange: (String) -> Unit, userName: String) {
+fun HomeTab(selectedCategory: String, onCategoryChange: (String) -> Unit) {
     val featured  = sampleEvents.filter { it.isFeatured }
     val displayed = if (selectedCategory == "All") sampleEvents
                     else sampleEvents.filter { it.category == selectedCategory }
@@ -229,7 +214,7 @@ fun HomeTab(selectedCategory: String, onCategoryChange: (String) -> Unit, userNa
                 ) {
                     Column {
                         Text("Good Evening 👋", fontSize = 13.sp, color = TmLightBlue)
-                        Text(userName, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text("John Doe", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         IconButton(onClick = {}) {
@@ -841,7 +826,7 @@ fun TicketCard(emoji: String, title: String, details: String, isUpcoming: Boolea
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-fun ProfileTab(navController: NavController, userName: String, userEmail: String) {
+fun ProfileTab(navController: NavController) {
     data class SettingsItem(val icon: ImageVector, val title: String, val subtitle: String)
 
     val settingsItems = listOf(
@@ -882,8 +867,8 @@ fun ProfileTab(navController: NavController, userName: String, userEmail: String
                         Text("JD", fontSize = 30.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     }
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text(userName,         fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                    Text(userEmail, fontSize = 13.sp, color = TmLightBlue)
+                    Text("John Doe",         fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text("john.doe@email.com", fontSize = 13.sp, color = TmLightBlue)
                     Spacer(modifier = Modifier.height(20.dp))
 
                     // Stats
@@ -918,11 +903,7 @@ fun ProfileTab(navController: NavController, userName: String, userEmail: String
                         Row(
                             modifier          = Modifier
                                 .fillMaxWidth()
-                                .clickable {
-                                    if (item.title == "Security & Privacy") {
-                                        navController.navigate(Screen.ChangePassword.route)
-                                    }
-                                }
+                                .clickable {}
                                 .padding(horizontal = 16.dp, vertical = 14.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -1000,7 +981,7 @@ fun DashboardPreview() {
 @Composable
 fun HomeTabPreview() {
     IndividualProjectTheme {
-        HomeTab(selectedCategory = "All", onCategoryChange = {}, userName = "John Doe")
+        HomeTab(selectedCategory = "All", onCategoryChange = {})
     }
 }
 
@@ -1036,7 +1017,7 @@ fun MyTicketsTabPreview() {
 @Composable
 fun ProfileTabPreview() {
     IndividualProjectTheme {
-        ProfileTab(navController = rememberNavController(), userName = "John Doe", userEmail = "john.doe@email.com")
+        ProfileTab(navController = rememberNavController())
     }
 }
 
