@@ -185,35 +185,37 @@ class FirebaseEventDataSource @Inject constructor(
 
     // Recommended: events in categories the user has favorited.
     // Falls back to featured events when the user has no favorites yet.
-    suspend fun getRecommendedEvents(userId: String): Resource<List<Event>> = try {
-        val favSnapshot = favoritesRef.child(userId).get().await()
-        val favEventIds = favSnapshot.children
-            .filter { it.getValue(Boolean::class.java) == true }
-            .mapNotNull { it.key }
-            .toSet()
+    suspend fun getRecommendedEvents(userId: String): Resource<List<Event>> {
+        return try {
+            val favSnapshot = favoritesRef.child(userId).get().await()
+            val favEventIds = favSnapshot.children
+                .filter { it.getValue(Boolean::class.java) == true }
+                .mapNotNull { it.key }
+                .toSet()
 
-        if (favEventIds.isEmpty()) return getFeaturedEvents()
+            if (favEventIds.isEmpty()) return getFeaturedEvents()
 
-        val favCategories = favEventIds.mapNotNull { eventId ->
-            eventsRef.child(eventId).child("category").get().await()
-                .getValue(String::class.java)
-        }.toSet()
+            val favCategories = favEventIds.mapNotNull { eventId ->
+                eventsRef.child(eventId).child("category").get().await()
+                    .getValue(String::class.java)
+            }.toSet()
 
-        if (favCategories.isEmpty()) return getFeaturedEvents()
+            if (favCategories.isEmpty()) return getFeaturedEvents()
 
-        val allSnapshot  = eventsRef.get().await()
-        val recommended  = allSnapshot.children
-            .mapNotNull { it.getValue(Event::class.java) }
-            .filter { it.category in favCategories && it.id !in favEventIds }
-            .take(10)
+            val allSnapshot = eventsRef.get().await()
+            val recommended = allSnapshot.children
+                .mapNotNull { it.getValue(Event::class.java) }
+                .filter { it.category in favCategories && it.id !in favEventIds }
+                .take(10)
 
-        Resource.Success(
-            recommended.ifEmpty {
-                allSnapshot.children.mapNotNull { it.getValue(Event::class.java) }.take(5)
-            }
-        )
-    } catch (e: Exception) {
-        Resource.Error(e.message ?: "Failed to fetch recommendations", e)
+            Resource.Success(
+                recommended.ifEmpty {
+                    allSnapshot.children.mapNotNull { it.getValue(Event::class.java) }.take(5)
+                }
+            )
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Failed to fetch recommendations", e)
+        }
     }
 
     // Server-side city filter. Add .indexOn: ["city"] to Firebase rules for performance.

@@ -97,6 +97,3 @@ fun IndividualProjectTheme(
         content     = content
     )
 }
-
-// Convenience alias so callers can use either name
-typealias TicketMateTheme = IndividualProjectTheme

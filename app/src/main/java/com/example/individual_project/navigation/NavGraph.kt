@@ -4,11 +4,11 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.individual_project.screens.DashboardScreen
-import com.example.individual_project.screens.ForgotPasswordScreen
-import com.example.individual_project.screens.LoginScreen
-import com.example.individual_project.screens.RegisterScreen
-import com.example.individual_project.screens.SplashScreen
+import com.example.individual_project.ui.screens.DashboardScreen
+import com.example.individual_project.ui.screens.ForgotPasswordScreen
+import com.example.individual_project.ui.screens.LoginScreen
+import com.example.individual_project.ui.screens.RegisterScreen
+import com.example.individual_project.ui.screens.SplashScreen
 
 @Composable
 fun NavGraph(navController: NavHostController) {

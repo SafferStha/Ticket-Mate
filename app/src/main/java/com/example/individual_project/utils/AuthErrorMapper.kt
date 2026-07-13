@@ -5,7 +5,7 @@ import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException
-import com.google.firebase.auth.FirebaseTooManyRequestsException
+import com.google.firebase.FirebaseTooManyRequestsException
 
 object AuthErrorMapper {
 
