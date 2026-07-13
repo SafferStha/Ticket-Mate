@@ -4,6 +4,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.individual_project.model.UserModel
 import com.example.individual_project.repo.UserRepo
+import com.google.firebase.auth.FirebaseAuth
 
 class UserViewModel(val repo: UserRepo) : ViewModel() {
     // Note: adaptors/stubs are used here to avoid depending on concrete repo callback
@@ -14,12 +15,11 @@ class UserViewModel(val repo: UserRepo) : ViewModel() {
         callback: (Boolean, String) -> Unit
     ) {
         _loading.value = true
-        // Temporary local handling — forward to repo if signatures match.
         try {
-            // If repo provides a compatible 'login', uncomment the following line:
-            // repo.login(email, password, callback)
-            _loading.value = false
-            callback(false, "login not forwarded: update ViewModel when repo API is known")
+            repo.login(email, password) { success, message ->
+                _loading.value = false
+                callback(success, message)
+            }
         } catch (e: Exception) {
             _loading.value = false
             callback(false, e.message ?: "unknown error")
@@ -32,9 +32,10 @@ class UserViewModel(val repo: UserRepo) : ViewModel() {
     ) {
         _loading.value = true
         try {
-            // repo.forgetPassword(email, callback)
-            _loading.value = false
-            callback(false, "forgetPassword not forwarded: update ViewModel when repo API is known")
+            repo.forgetPassword(email) { success, message ->
+                _loading.value = false
+                callback(success, message)
+            }
         } catch (e: Exception) {
             _loading.value = false
             callback(false, e.message ?: "unknown error")
@@ -52,13 +53,13 @@ class UserViewModel(val repo: UserRepo) : ViewModel() {
         id: String
     ){
         _loading.value = true
-        // Repo callback signature may differ across implementations. Keep this
-        // method conservative until repo API is confirmed.
         try {
-            // If repo.getUserById provides the user in the callback, forward it.
-            // repo.getUserById(id) { success, message, data -> _users.value = data; _loading.value = false }
-            _loading.value = false
-            _users.value = null
+            repo.getUserById(id) { success, message, data ->
+                if (success) {
+                    _users.value = data
+                }
+                _loading.value = false
+            }
         } catch (e: Exception) {
             _loading.value = false
             _users.value = null
@@ -71,9 +72,12 @@ class UserViewModel(val repo: UserRepo) : ViewModel() {
     fun getAllUser() {
         _loading.value = true
         try {
-            // repo.getAllUsers { success, message, data -> if (success) _allUsers.value = data }
-            _loading.value = false
-            _allUsers.value = emptyList()
+            repo.getAllUsers { success, message, data ->
+                if (success) {
+                    _allUsers.value = data
+                }
+                _loading.value = false
+            }
         } catch (e: Exception) {
             _loading.value = false
             _allUsers.value = emptyList()
@@ -83,8 +87,7 @@ class UserViewModel(val repo: UserRepo) : ViewModel() {
 
     fun logout(callback: (Boolean, String) -> Unit) {
         try {
-            // repo.logout(callback)
-            callback(false, "logout not forwarded: update ViewModel when repo API is known")
+            repo.logout(callback)
         } catch (e: Exception) {
             callback(false, e.message ?: "unknown error")
         }
@@ -96,11 +99,15 @@ class UserViewModel(val repo: UserRepo) : ViewModel() {
         email: String, password: String,
         callback: (Boolean, String, String) -> Unit
     ) {
+        _loading.value = true
         try {
-            // If repo.register has an extra parameter (e.g. contact), update this call.
-            // repo.register(email, password, contact, callback)
-            callback(false, "", "register not forwarded: update ViewModel when repo API is known")
+            repo.register(email, password, "", "") { success, message ->
+                _loading.value = false
+                val userId = if (success) com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "" else ""
+                callback(success, message, userId)
+            }
         } catch (e: Exception) {
+            _loading.value = false
             callback(false, e.message ?: "unknown", "")
         }
     }
@@ -108,27 +115,119 @@ class UserViewModel(val repo: UserRepo) : ViewModel() {
 
     fun addUser(id: String, model: UserModel, callback: (Boolean, String) -> Unit) {
         try {
-            // repo.addUser(id, model, callback)  // adapt when repo API is known
-            callback(false, "addUser not forwarded: update ViewModel when repo API is known")
+            repo.addUser(model.name, model.email, "", model.contact) { success, message ->
+                callback(success, message)
+            }
         } catch (e: Exception) {
             callback(false, e.message ?: "unknown error")
         }
     }
 
-    fun editProfile(id: String, model: UserModel, callback: (Boolean, String) -> Unit) {
+    fun editProfile(model: UserModel, callback: (Boolean, String) -> Unit) {
+        _loading.value = true
         try {
-            // repo.editProfile(...) // adapt when repo API is known
-            callback(false, "editProfile not forwarded: update ViewModel when repo API is known")
+            repo.editProfile(model) { success, message ->
+                _loading.value = false
+                callback(success, message)
+            }
         } catch (e: Exception) {
+            _loading.value = false
             callback(false, e.message ?: "unknown error")
         }
     }
 
-    fun deleteUser(id: String, callback: (Boolean, String) -> Unit) {
+    fun deleteUser(callback: (Boolean, String) -> Unit) {
+        _loading.value = true
         try {
-            // repo.deleteUser(id, callback)
-            callback(false, "deleteUser not forwarded: update ViewModel when repo API is known")
+            repo.deleteUser { success, message ->
+                _loading.value = false
+                callback(success, message)
+            }
         } catch (e: Exception) {
+            _loading.value = false
+            callback(false, e.message ?: "unknown error")
+        }
+    }
+
+    // OTP Methods
+    fun sendOtpEmail(
+        email: String,
+        callback: (Boolean, String, String) -> Unit
+    ) {
+        _loading.value = true
+        try {
+            repo.sendOtpEmail(email) { success, message, otp ->
+                _loading.value = false
+                callback(success, message, otp)
+            }
+        } catch (e: Exception) {
+            _loading.value = false
+            callback(false, e.message ?: "unknown error", "")
+        }
+    }
+
+    fun verifyOtp(
+        email: String,
+        otp: String,
+        callback: (Boolean, String) -> Unit
+    ) {
+        _loading.value = true
+        try {
+            repo.verifyOtp(email, otp) { success, message ->
+                _loading.value = false
+                callback(success, message)
+            }
+        } catch (e: Exception) {
+            _loading.value = false
+            callback(false, e.message ?: "unknown error")
+        }
+    }
+
+    // Email Verification
+    fun sendVerificationEmail(callback: (Boolean, String) -> Unit) {
+        _loading.value = true
+        try {
+            repo.sendVerificationEmail { success, message ->
+                _loading.value = false
+                callback(success, message)
+            }
+        } catch (e: Exception) {
+            _loading.value = false
+            callback(false, e.message ?: "unknown error")
+        }
+    }
+
+    // Change Password
+    fun changePassword(
+        oldPassword: String,
+        newPassword: String,
+        callback: (Boolean, String) -> Unit
+    ) {
+        _loading.value = true
+        try {
+            repo.changePassword(oldPassword, newPassword) { success, message ->
+                _loading.value = false
+                callback(success, message)
+            }
+        } catch (e: Exception) {
+            _loading.value = false
+            callback(false, e.message ?: "unknown error")
+        }
+    }
+
+    fun changePasswordWithEmail(
+        email: String,
+        newPassword: String,
+        callback: (Boolean, String) -> Unit
+    ) {
+        _loading.value = true
+        try {
+            repo.changePasswordWithEmail(email, newPassword) { success, message ->
+                _loading.value = false
+                callback(success, message)
+            }
+        } catch (e: Exception) {
+            _loading.value = false
             callback(false, e.message ?: "unknown error")
         }
     }
