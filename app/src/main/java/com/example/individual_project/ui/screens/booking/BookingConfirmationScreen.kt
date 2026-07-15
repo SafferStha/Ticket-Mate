@@ -40,7 +40,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.individual_project.ui.components.ErrorView
 import com.example.individual_project.ui.components.LoadingView
@@ -59,11 +58,7 @@ fun BookingConfirmationScreen(
     navController : NavController,
     eventId       : String,
     quantity      : Int,
-    viewModel     : BookingViewModel = hiltViewModel(
-        // Share the same ViewModel instance scoped to the booking/{eventId} back-stack entry.
-        // getBackStackEntry requires the route TEMPLATE, not the filled-in route.
-        navController.getBackStackEntry(Screen.Booking.route)
-    )
+    viewModel     : BookingViewModel
 ) {
     val uiState      by viewModel.uiState.collectAsState()
     val snackbarHost = remember { SnackbarHostState() }

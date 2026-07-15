@@ -17,4 +17,10 @@ class TicketRepositoryImpl @Inject constructor(
 
     override suspend fun getTicketById(ticketId: String): Resource<Ticket> =
         ticketDataSource.getTicketById(ticketId)
+
+    override suspend fun getTicketByBookingId(bookingId: String): Resource<Ticket?> =
+        ticketDataSource.getTicketByBookingId(bookingId)
+
+    override suspend fun updateTicketStatus(ticketId: String, status: String): Resource<Unit> =
+        ticketDataSource.updateTicketStatus(ticketId, status)
 }

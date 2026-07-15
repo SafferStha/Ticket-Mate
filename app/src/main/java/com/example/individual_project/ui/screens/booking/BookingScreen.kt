@@ -56,9 +56,6 @@ import com.example.individual_project.ui.theme.Spacing
 import com.example.individual_project.ui.theme.TmBlue
 import com.example.individual_project.ui.theme.TmGold
 import com.example.individual_project.ui.theme.TmNavyBlue
-import com.example.individual_project.ui.theme.TmSuccess
-import com.example.individual_project.ui.theme.TmWarning
-import com.example.individual_project.ui.theme.TmError
 import com.example.individual_project.ui.viewmodel.BookingViewModel
 import com.example.individual_project.utils.DateFormatter
 import com.example.individual_project.utils.PriceFormatter
@@ -116,7 +113,6 @@ fun BookingScreen(
                                     Screen.BookingConfirmation.createRoute(event.id, uiState.quantity)
                                 )
                             },
-                            enabled  = event.availableSeats > 0,
                             modifier = Modifier.height(Spacing.buttonHeight),
                             shape    = MaterialTheme.shapes.medium,
                             colors   = ButtonDefaults.buttonColors(containerColor = TmBlue)
@@ -312,15 +308,11 @@ fun BookingScreen(
                                     modifier = Modifier
                                         .size(44.dp)
                                         .clip(CircleShape)
-                                        .background(
-                                            if (uiState.quantity < event.availableSeats) TmBlue
-                                            else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-                                        ),
+                                        .background(TmBlue),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     IconButton(
-                                        onClick  = { viewModel.increaseQuantity() },
-                                        enabled  = uiState.quantity < event.availableSeats
+                                        onClick  = { viewModel.increaseQuantity() }
                                     ) {
                                         Icon(
                                             Icons.Default.Add, null,
@@ -329,20 +321,6 @@ fun BookingScreen(
                                     }
                                 }
                             }
-                            Spacer(modifier = Modifier.height(Spacing.sm))
-
-                            // Seat availability indicator
-                            val seatsColor = when {
-                                event.availableSeats <= 0  -> TmError
-                                event.availableSeats <= 10 -> TmWarning
-                                else                       -> TmSuccess
-                            }
-                            Text(
-                                text  = "${event.availableSeats} seats available",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = seatsColor,
-                                modifier = Modifier.align(Alignment.CenterHorizontally)
-                            )
                             Spacer(modifier = Modifier.height(Spacing.lg))
                         }
 

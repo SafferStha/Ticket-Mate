@@ -29,16 +29,20 @@ class FirebaseTicketDataSource @Inject constructor(
     }
 
     suspend fun getTicketsByUserId(userId: String): Resource<List<Ticket>> = try {
-        val snapshot = ticketsRef.orderByChild("userId").equalTo(userId).get().await()
-        val tickets  = snapshot.children.mapNotNull { it.getValue(Ticket::class.java) }
+        val snapshot = ticketsRef.get().await()
+        val tickets  = snapshot.children
+            .mapNotNull { it.getValue(Ticket::class.java) }
+            .filter { it.userId == userId }
         Resource.Success(tickets)
     } catch (e: Exception) {
         Resource.Error(FirebaseErrorMapper.map(e, "Failed to fetch tickets"), e)
     }
 
     suspend fun getTicketByBookingId(bookingId: String): Resource<Ticket?> = try {
-        val snapshot = ticketsRef.orderByChild("bookingId").equalTo(bookingId).get().await()
-        val ticket   = snapshot.children.firstOrNull()?.getValue(Ticket::class.java)
+        val snapshot = ticketsRef.get().await()
+        val ticket   = snapshot.children
+            .mapNotNull { it.getValue(Ticket::class.java) }
+            .find { it.bookingId == bookingId }
         Resource.Success(ticket)
     } catch (e: Exception) {
         Resource.Error(FirebaseErrorMapper.map(e, "Failed to fetch ticket"), e)
@@ -52,4 +56,12 @@ class FirebaseTicketDataSource @Inject constructor(
     } catch (e: Exception) {
         Resource.Error(FirebaseErrorMapper.map(e, "Failed to fetch ticket"), e)
     }
+
+    suspend fun updateTicketStatus(ticketId: String, status: String): Resource<Unit> = try {
+        ticketsRef.child(ticketId).child("ticketStatus").setValue(status).await()
+        Resource.Success(Unit)
+    } catch (e: Exception) {
+        Resource.Error(FirebaseErrorMapper.map(e, "Failed to update ticket status"), e)
+    }
 }
+

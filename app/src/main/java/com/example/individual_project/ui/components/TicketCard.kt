@@ -2,6 +2,7 @@ package com.example.individual_project.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,6 +19,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -37,6 +39,7 @@ import com.example.individual_project.ui.theme.Spacing
 import com.example.individual_project.ui.theme.TmDarkBlue
 import com.example.individual_project.ui.theme.TmBlue
 import com.example.individual_project.ui.theme.TmSuccess
+import com.example.individual_project.ui.theme.TmError
 
 @Composable
 fun TicketCard(
@@ -45,6 +48,8 @@ fun TicketCard(
     details        : String,
     isUpcoming     : Boolean,
     onActionClick  : () -> Unit = {},
+    onCancelClick  : (() -> Unit)? = null,
+    isCancelling   : Boolean = false,
     modifier       : Modifier   = Modifier
 ) {
     Card(
@@ -134,20 +139,58 @@ fun TicketCard(
                 }
                 Spacer(modifier = Modifier.height(Spacing.md))
                 if (isUpcoming) {
-                    Button(
-                        onClick  = onActionClick,
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        shape    = MaterialTheme.shapes.medium,
-                        colors   = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        )
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {
-                        Icon(
-                            Icons.Default.ConfirmationNumber, null,
-                            modifier = Modifier.size(Spacing.iconMd)
-                        )
-                        Spacer(modifier = Modifier.width(Spacing.sm))
-                        Text("View Ticket", style = MaterialTheme.typography.labelLarge)
+                        Button(
+                            onClick  = onActionClick,
+                            modifier = Modifier.weight(1f),
+                            shape    = MaterialTheme.shapes.medium,
+                            colors   = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            )
+                        ) {
+                            Icon(
+                                Icons.Default.ConfirmationNumber, null,
+                                modifier = Modifier.size(Spacing.iconMd)
+                            )
+                            Spacer(modifier = Modifier.width(Spacing.sm))
+                            Text("View Ticket", style = MaterialTheme.typography.labelLarge)
+                        }
+                        if (onCancelClick != null) {
+                            if (isCancelling) {
+                                OutlinedButton(
+                                    onClick  = {},
+                                    enabled  = false,
+                                    modifier = Modifier.weight(1f),
+                                    shape    = MaterialTheme.shapes.medium,
+                                    border   = BorderStroke(1.dp, TmError.copy(alpha = 0.5f)),
+                                    colors   = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = TmError.copy(alpha = 0.5f),
+                                        disabledContentColor = TmError.copy(alpha = 0.5f)
+                                    )
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier    = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp,
+                                        color       = TmError.copy(alpha = 0.5f)
+                                    )
+                                    Spacer(modifier = Modifier.width(Spacing.xs))
+                                    Text("Cancelling…", style = MaterialTheme.typography.labelLarge)
+                                }
+                            } else {
+                                OutlinedButton(
+                                    onClick  = onCancelClick,
+                                    modifier = Modifier.weight(1f),
+                                    shape    = MaterialTheme.shapes.medium,
+                                    border   = BorderStroke(1.dp, TmError),
+                                    colors   = ButtonDefaults.outlinedButtonColors(contentColor = TmError)
+                                ) {
+                                    Text("Cancel Booking", style = MaterialTheme.typography.labelLarge)
+                                }
+                            }
+                        }
                     }
                 } else {
                     OutlinedButton(

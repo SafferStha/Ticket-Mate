@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
@@ -129,10 +130,19 @@ fun NavGraph(
             AuthGuard(navController) {
                 val eventId  = backStackEntry.arguments?.getString("eventId") ?: ""
                 val quantity = backStackEntry.arguments?.getInt("quantity") ?: 1
+
+                // Share the same ViewModel instance scoped to the booking/{eventId} back-stack entry.
+                // We use remember here to safely cache the entry before it might be popped during transitions,
+                // avoiding "No destination with route booking/{eventId}" crashes.
+                val bookingEntry = remember(backStackEntry) {
+                    navController.getBackStackEntry(Screen.Booking.route)
+                }
+
                 BookingConfirmationScreen(
                     navController = navController,
                     eventId       = eventId,
-                    quantity      = quantity
+                    quantity      = quantity,
+                    viewModel     = hiltViewModel(bookingEntry)
                 )
             }
         }

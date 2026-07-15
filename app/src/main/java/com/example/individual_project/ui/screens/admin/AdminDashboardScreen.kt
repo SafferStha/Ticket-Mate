@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
@@ -95,6 +96,9 @@ fun AdminDashboardScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { viewModel.seedDatabase() }) {
+                        Icon(Icons.Default.Build, contentDescription = "Seed data", tint = Color.White)
+                    }
                     IconButton(onClick = { navController.navigate(Screen.AdminEventForm.createRoute()) }) {
                         Icon(Icons.Default.Add, contentDescription = "Create event", tint = Color.White)
                     }

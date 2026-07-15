@@ -11,26 +11,39 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.QrCode2
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,7 +56,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.example.individual_project.data.model.Ticket
+import com.example.individual_project.domain.repository.BookingRepository
 import com.example.individual_project.domain.repository.TicketRepository
+import com.example.individual_project.notifications.EventReminderScheduler
 import com.example.individual_project.ui.components.ErrorView
 import com.example.individual_project.ui.components.LoadingView
 import com.example.individual_project.ui.model.UiState
@@ -52,6 +67,7 @@ import com.example.individual_project.ui.theme.TmBlue
 import com.example.individual_project.ui.theme.TmGold
 import com.example.individual_project.ui.theme.TmNavyBlue
 import com.example.individual_project.ui.theme.TmSuccess
+import com.example.individual_project.ui.theme.TmError
 import com.example.individual_project.utils.PriceFormatter
 import com.example.individual_project.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -65,14 +81,22 @@ import javax.inject.Inject
 
 @HiltViewModel
 class TicketDetailViewModel @Inject constructor(
-    private val ticketRepository: TicketRepository,
-    savedStateHandle            : SavedStateHandle
+    private val ticketRepository : TicketRepository,
+    private val bookingRepository: BookingRepository,
+    private val reminderScheduler: EventReminderScheduler,
+    savedStateHandle             : SavedStateHandle
 ) : ViewModel() {
 
     private val ticketId: String = savedStateHandle.get<String>("ticketId") ?: ""
 
     private val _state = MutableStateFlow(UiState<Ticket>())
     val state: StateFlow<UiState<Ticket>> = _state.asStateFlow()
+
+    private val _isCancelling = MutableStateFlow(false)
+    val isCancelling: StateFlow<Boolean> = _isCancelling.asStateFlow()
+
+    private val _cancelError = MutableStateFlow<String?>(null)
+    val cancelError: StateFlow<String?> = _cancelError.asStateFlow()
 
     init {
         if (ticketId.isNotBlank()) load()
@@ -88,6 +112,28 @@ class TicketDetailViewModel @Inject constructor(
             }
         }
     }
+
+    fun cancelBooking(bookingId: String) {
+        viewModelScope.launch {
+            _isCancelling.value = true
+            _cancelError.value = null
+            when (val r = bookingRepository.cancelBooking(bookingId)) {
+                is Resource.Success -> {
+                    reminderScheduler.cancelReminder(bookingId)
+                    load() // refresh details to show cancelled status
+                }
+                is Resource.Error -> {
+                    _cancelError.value = r.message
+                }
+                else -> {
+                    _cancelError.value = "Failed to cancel booking"
+                }
+            }
+            _isCancelling.value = false
+        }
+    }
+
+    fun clearCancelError() { _cancelError.value = null }
 }
 
 // ── Screen ────────────────────────────────────────────────────────────────────
@@ -98,9 +144,40 @@ fun TicketDetailScreen(
     navController: NavController,
     viewModel    : TicketDetailViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    val state          by viewModel.state.collectAsState()
+    val isCancelling   by viewModel.isCancelling.collectAsState()
+    val cancelError    by viewModel.cancelError.collectAsState()
+    var showCancelDialog by remember { mutableStateOf(false) }
+    val snackbarHost = remember { SnackbarHostState() }
+
+    LaunchedEffect(cancelError) {
+        cancelError?.let {
+            snackbarHost.showSnackbar(it)
+            viewModel.clearCancelError()
+        }
+    }
+
+    if (showCancelDialog) {
+        AlertDialog(
+            onDismissRequest = { showCancelDialog = false },
+            title            = { Text("Cancel booking?") },
+            text             = { Text("This can't be undone. Your seats will be released and your ticket will be cancelled.") },
+            confirmButton    = {
+                TextButton(onClick = {
+                    state.data?.bookingId?.let { bookingId ->
+                        viewModel.cancelBooking(bookingId)
+                    }
+                    showCancelDialog = false
+                }) { Text("Cancel Booking", color = TmError) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCancelDialog = false }) { Text("Keep Booking") }
+            }
+        )
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHost) },
         topBar = {
             TopAppBar(
                 title = { Text("Ticket Details") },
@@ -131,6 +208,10 @@ fun TicketDetailScreen(
                 )
                 state.data != null -> {
                     val ticket = state.data!!
+                    val isCancelled = ticket.ticketStatus == "CANCELLED"
+                    val statusColor = if (isCancelled) TmError else TmSuccess
+                    val statusIcon = if (isCancelled) Icons.Default.Cancel else Icons.Default.CheckCircle
+
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -143,7 +224,7 @@ fun TicketDetailScreen(
                         // ── Status badge ───────────────────────────────────────
                         Surface(
                             shape = MaterialTheme.shapes.medium,
-                            color = TmSuccess.copy(alpha = 0.15f)
+                            color = statusColor.copy(alpha = 0.15f)
                         ) {
                             Row(
                                 modifier          = Modifier.padding(
@@ -154,15 +235,15 @@ fun TicketDetailScreen(
                                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                             ) {
                                 Icon(
-                                    Icons.Default.CheckCircle, null,
-                                    tint     = TmSuccess,
+                                    statusIcon, null,
+                                    tint     = statusColor,
                                     modifier = Modifier.size(Spacing.iconMd)
                                 )
                                 Text(
                                     text       = ticket.ticketStatus,
                                     style      = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color      = TmSuccess
+                                    color      = statusColor
                                 )
                             }
                         }
@@ -184,7 +265,7 @@ fun TicketDetailScreen(
                                         modifier = Modifier.size(120.dp)
                                     )
                                     Text(
-                                        text      = "Scan at Venue",
+                                        text      = if (isCancelled) "Ticket Cancelled" else "Scan at Venue",
                                         style     = MaterialTheme.typography.labelSmall,
                                         color     = MaterialTheme.colorScheme.onSurfaceVariant,
                                         textAlign = TextAlign.Center
@@ -254,6 +335,40 @@ fun TicketDetailScreen(
                                 TicketDetailRow("Ticket ID",  ticket.id.take(16) + "…",  valueColor = TmBlue)
                                 TicketDetailRow("Booking ID", ticket.bookingId.take(16) + "…", valueColor = TmBlue)
                                 TicketDetailRow("Payment ID", ticket.paymentId.take(16) + "…", valueColor = TmBlue)
+                            }
+                        }
+
+                        // ── Cancel action (only for active tickets) ─────────────────────
+                        if (ticket.ticketStatus == "ACTIVE") {
+                            Spacer(modifier = Modifier.height(Spacing.lg))
+                            if (isCancelling) {
+                                Button(
+                                    onClick  = {},
+                                    enabled  = false,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape    = MaterialTheme.shapes.medium,
+                                    colors   = ButtonDefaults.buttonColors(
+                                        containerColor = TmError.copy(alpha = 0.5f),
+                                        disabledContainerColor = TmError.copy(alpha = 0.3f)
+                                    )
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier    = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp,
+                                        color       = Color.White
+                                    )
+                                    Spacer(modifier = Modifier.width(Spacing.sm))
+                                    Text("Cancelling booking…", color = Color.White)
+                                }
+                            } else {
+                                Button(
+                                    onClick  = { showCancelDialog = true },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape    = MaterialTheme.shapes.medium,
+                                    colors   = ButtonDefaults.buttonColors(containerColor = TmError)
+                                ) {
+                                    Text("Cancel Booking", color = Color.White, style = MaterialTheme.typography.labelLarge)
+                                }
                             }
                         }
 

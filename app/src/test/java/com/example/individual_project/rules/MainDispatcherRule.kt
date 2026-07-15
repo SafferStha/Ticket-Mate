@@ -1,4 +1,4 @@
-package com.example.individual_project
+package com.example.individual_project.rules
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestDispatcher

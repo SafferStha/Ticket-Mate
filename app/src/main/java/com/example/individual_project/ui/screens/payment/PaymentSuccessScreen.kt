@@ -298,6 +298,22 @@ fun PaymentSuccessScreen(
 
                         OutlinedButton(
                             onClick  = {
+                                navController.navigate(Screen.PaymentHistory.route) {
+                                    popUpTo(Screen.Dashboard.route) { inclusive = false }
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(Spacing.buttonHeight),
+                            shape = MaterialTheme.shapes.medium
+                        ) {
+                            Text("View Payment History", style = MaterialTheme.typography.labelLarge)
+                        }
+
+                        Spacer(modifier = Modifier.height(Spacing.sm))
+
+                        OutlinedButton(
+                            onClick  = {
                                 navController.navigate(Screen.Dashboard.route) {
                                     popUpTo(Screen.Dashboard.route) { inclusive = true }
                                 }

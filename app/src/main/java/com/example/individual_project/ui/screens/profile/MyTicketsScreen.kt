@@ -14,17 +14,25 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -34,7 +42,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.example.individual_project.data.model.Ticket
+import com.example.individual_project.domain.repository.BookingRepository
 import com.example.individual_project.domain.repository.TicketRepository
+import com.example.individual_project.notifications.EventReminderScheduler
 import com.example.individual_project.ui.components.EmptyState
 import com.example.individual_project.ui.components.ErrorView
 import com.example.individual_project.ui.components.LoadingView
@@ -44,6 +54,7 @@ import com.example.individual_project.ui.navigation.Screen
 import com.example.individual_project.ui.theme.Spacing
 import com.example.individual_project.ui.theme.TmDarkBlue
 import com.example.individual_project.ui.theme.TmNavyBlue
+import com.example.individual_project.ui.theme.TmError
 import com.example.individual_project.utils.PriceFormatter
 import com.example.individual_project.utils.Resource
 import com.google.firebase.auth.FirebaseAuth
@@ -51,6 +62,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -58,15 +70,24 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MyTicketsViewModel @Inject constructor(
-    private val ticketRepository: TicketRepository,
-    private val firebaseAuth    : FirebaseAuth,
-    savedStateHandle            : SavedStateHandle
+    private val ticketRepository : TicketRepository,
+    private val bookingRepository: BookingRepository,
+    private val reminderScheduler: EventReminderScheduler,
+    private val firebaseAuth     : FirebaseAuth,
+    savedStateHandle             : SavedStateHandle
 ) : ViewModel() {
 
     private val uid: String get() = firebaseAuth.currentUser?.uid ?: ""
 
     private val _state = MutableStateFlow(UiState<List<Ticket>>())
     val state: StateFlow<UiState<List<Ticket>>> = _state.asStateFlow()
+
+    // Booking ids currently being cancelled
+    private val _cancellingIds = MutableStateFlow<Set<String>>(emptySet())
+    val cancellingIds: StateFlow<Set<String>> = _cancellingIds.asStateFlow()
+
+    private val _actionError = MutableStateFlow<String?>(null)
+    val actionError: StateFlow<String?> = _actionError.asStateFlow()
 
     init {
         loadTickets()
@@ -90,6 +111,21 @@ class MyTicketsViewModel @Inject constructor(
             }
         }
     }
+
+    fun cancelBooking(bookingId: String) {
+        if (bookingId in _cancellingIds.value) return
+        viewModelScope.launch {
+            _cancellingIds.update { it + bookingId }
+            when (val result = bookingRepository.cancelBooking(bookingId)) {
+                is Resource.Error -> _actionError.value = result.message
+                else              -> reminderScheduler.cancelReminder(bookingId)
+            }
+            loadTickets()
+            _cancellingIds.update { it - bookingId }
+        }
+    }
+
+    fun clearActionError() { _actionError.value = null }
 }
 
 // ── Screen ────────────────────────────────────────────────────────────────────
@@ -100,9 +136,38 @@ fun MyTicketsScreen(
     navController: NavController,
     viewModel    : MyTicketsViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    val state         by viewModel.state.collectAsState()
+    val cancellingIds by viewModel.cancellingIds.collectAsState()
+    val actionError   by viewModel.actionError.collectAsState()
+    var pendingCancelBookingId by remember { mutableStateOf<String?>(null) }
+    val snackbarHost = remember { SnackbarHostState() }
+
+    LaunchedEffect(actionError) {
+        actionError?.let {
+            snackbarHost.showSnackbar(it)
+            viewModel.clearActionError()
+        }
+    }
+
+    pendingCancelBookingId?.let { bookingId ->
+        AlertDialog(
+            onDismissRequest = { pendingCancelBookingId = null },
+            title            = { Text("Cancel booking?") },
+            text             = { Text("This can't be undone. Your seats will be released and your ticket will be cancelled.") },
+            confirmButton    = {
+                TextButton(onClick = {
+                    viewModel.cancelBooking(bookingId)
+                    pendingCancelBookingId = null
+                }) { Text("Cancel Booking", color = TmError) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingCancelBookingId = null }) { Text("Keep Booking") }
+            }
+        )
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHost) },
         topBar = {
             TopAppBar(
                 title = { Text("My Tickets") },
@@ -166,7 +231,9 @@ fun MyTicketsScreen(
                                         navController.navigate(
                                             Screen.TicketDetail.createRoute(ticket.id)
                                         )
-                                    }
+                                    },
+                                    onCancelClick = { pendingCancelBookingId = ticket.bookingId },
+                                    isCancelling  = ticket.bookingId in cancellingIds
                                 )
                             }
                             item { Spacer(modifier = Modifier.height(Spacing.md)) }

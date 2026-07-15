@@ -42,6 +42,7 @@ import com.example.individual_project.ui.components.LoadingView
 import com.example.individual_project.ui.components.ProfileAvatar
 import com.example.individual_project.ui.components.SectionHeader
 import com.example.individual_project.ui.model.toUiModel
+import com.example.individual_project.data.model.initials
 import com.example.individual_project.ui.theme.Spacing
 import com.example.individual_project.ui.theme.TmDarkBlue
 import com.example.individual_project.ui.theme.TmLightBlue
@@ -63,6 +64,7 @@ fun HomeScreen(
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val selectedCity     by viewModel.selectedCity.collectAsState()
     val favoriteIds      by viewModel.favoriteIds.collectAsState()
+    val profileState     by viewModel.userProfile.collectAsState()
 
     fun List<com.example.individual_project.data.model.Event>.toUiModels() =
         map { it.toUiModel().copy(isLiked = it.id in favoriteIds) }
@@ -112,7 +114,10 @@ fun HomeScreen(
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    ProfileAvatar(initials = "TM", size = Spacing.avatarSm)
+                    ProfileAvatar(
+                        initials = profileState.data?.initials ?: "TM",
+                        size     = Spacing.avatarSm
+                    )
                 }
             }
         }
@@ -360,7 +365,9 @@ fun HomeScreen(
                 EmptyState(
                     emoji    = "🎭",
                     title    = "No events found",
-                    subtitle = "There are no events in this category yet"
+                    subtitle = "There are no events in this category yet",
+                    actionLabel = "Seed Sample Data",
+                    onAction = { viewModel.seedDatabase() }
                 )
             }
             else -> items(eventsList, key = { it.id }) { event ->

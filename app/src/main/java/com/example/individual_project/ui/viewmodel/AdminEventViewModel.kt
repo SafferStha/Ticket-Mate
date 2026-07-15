@@ -43,7 +43,8 @@ data class AdminEventFormState(
     val isLoading         : Boolean = false,
     val isSaving          : Boolean = false,
     val saveSuccess       : Boolean = false,
-    val error             : String? = null
+    val error             : String? = null,
+    val isSeeding         : Boolean = false
 )
 
 @HiltViewModel
@@ -171,6 +172,147 @@ class AdminEventViewModel @Inject constructor(
             when (result) {
                 is Resource.Error -> _formState.update { it.copy(isSaving = false, error = result.message) }
                 else              -> _formState.update { it.copy(isSaving = false, saveSuccess = true) }
+            }
+        }
+    }
+
+    fun seedDatabase() {
+        if (!adminStateManager.isAdmin.value) {
+            _dashboardState.update { it.copy(error = "Admin privileges required to seed data.") }
+            return
+        }
+
+        viewModelScope.launch {
+            _dashboardState.update { it.copy(isLoading = true, error = null) }
+
+            val sampleEvents = listOf(
+                Event(
+                    title = "Kathmandu Music Festival",
+                    description = "A night of amazing music and local artists.",
+                    category = "Concerts",
+                    venue = "Tundikhel",
+                    city = "Kathmandu",
+                    date = "2026-09-15",
+                    time = "18:00",
+                    imageUrl = "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4",
+                    price = 1500.0,
+                    availableSeats = 500,
+                    organizer = "TicketMate Events",
+                    featured = true
+                ),
+                Event(
+                    title = "Tech Conference 2026",
+                    description = "Exploring the latest in AI and Android development.",
+                    category = "Education",
+                    venue = "Hotel Annapurna",
+                    city = "Kathmandu",
+                    date = "2026-10-10",
+                    time = "09:00",
+                    imageUrl = "https://images.unsplash.com/photo-1540575861501-7c90b707a27d",
+                    price = 3000.0,
+                    availableSeats = 200,
+                    organizer = "GDG Kathmandu",
+                    featured = false
+                ),
+                Event(
+                    title = "Pokhara Food Fest",
+                    description = "Taste the best local and international cuisines.",
+                    category = "Festivals",
+                    venue = "Lakeside",
+                    city = "Pokhara",
+                    date = "2026-11-05",
+                    time = "12:00",
+                    imageUrl = "https://images.unsplash.com/photo-1504674900247-0877df9cc836",
+                    price = 500.0,
+                    availableSeats = 1000,
+                    organizer = "Foodies Nepal",
+                    featured = true
+                ),
+                Event(
+                    title = "Himalayan Art Expo",
+                    description = "Showcasing contemporary and traditional Nepali art.",
+                    category = "Arts",
+                    venue = "Pokhara Art Gallery",
+                    city = "Pokhara",
+                    date = "2026-12-01",
+                    time = "10:00",
+                    imageUrl = "https://images.unsplash.com/photo-1460661419201-fd4ce186860d",
+                    price = 200.0,
+                    availableSeats = 300,
+                    organizer = "Nepal Art Council",
+                    featured = false
+                ),
+                Event(
+                    title = "Chitwan Wildlife Safari",
+                    description = "Experience the thrill of seeing rhinos and tigers in their natural habitat.",
+                    category = "Nature",
+                    venue = "Sauraha",
+                    city = "Chitwan",
+                    date = "2027-01-20",
+                    time = "06:00",
+                    imageUrl = "https://images.unsplash.com/photo-1581026073712-2e7749e6f51c",
+                    price = 4500.0,
+                    availableSeats = 50,
+                    organizer = "Wildlife Nepal",
+                    featured = true
+                ),
+                Event(
+                    title = "Lumbini Peace Marathon",
+                    description = "Run for peace in the birthplace of Lord Buddha.",
+                    category = "Sports",
+                    venue = "Lumbini Garden",
+                    city = "Lumbini",
+                    date = "2027-02-14",
+                    time = "07:00",
+                    imageUrl = "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8",
+                    price = 1000.0,
+                    availableSeats = 1000,
+                    organizer = "Lumbini Trust",
+                    featured = false
+                ),
+                Event(
+                    title = "Street Food Carnival",
+                    description = "The biggest collection of Asian street food in one place.",
+                    category = "Food",
+                    venue = "Bhrikutimandap",
+                    city = "Kathmandu",
+                    date = "2027-03-05",
+                    time = "11:00",
+                    imageUrl = "https://images.unsplash.com/photo-1555939594-58d7cb561ad1",
+                    price = 0.0,
+                    availableSeats = 5000,
+                    organizer = "City Events",
+                    featured = true
+                ),
+                Event(
+                    title = "Paragliding Championship",
+                    description = "Watch the world's best paragliders soar over Phewa Lake.",
+                    category = "Sports",
+                    venue = "Sarangkot",
+                    city = "Pokhara",
+                    date = "2027-04-10",
+                    time = "09:00",
+                    imageUrl = "https://images.unsplash.com/photo-1533371452382-d45a9da51ad9",
+                    price = 0.0,
+                    availableSeats = 2000,
+                    organizer = "Aviation Nepal",
+                    featured = false
+                )
+            )
+
+            var success = true
+            for (event in sampleEvents) {
+                val result = eventRepository.createEvent(event)
+                if (result is Resource.Error) {
+                    success = false
+                    break
+                }
+            }
+
+            if (success) {
+                loadEvents()
+            } else {
+                _dashboardState.update { it.copy(isLoading = false, error = "Failed to seed some events.") }
             }
         }
     }

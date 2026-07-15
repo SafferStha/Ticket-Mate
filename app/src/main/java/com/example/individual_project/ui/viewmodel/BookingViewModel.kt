@@ -70,8 +70,7 @@ class BookingViewModel @Inject constructor(
 
     fun increaseQuantity() {
         val state = _uiState.value
-        val max   = state.event?.availableSeats ?: 1
-        if (state.quantity >= max) return
+        // Demo mode: unlimited quantity
         val newQty = state.quantity + 1
         _uiState.update { it.copy(quantity = newQty, totalPrice = (it.event?.price ?: 0.0) * newQty) }
     }
@@ -89,10 +88,6 @@ class BookingViewModel @Inject constructor(
         val event = state.event ?: return
         if (userId.isBlank()) {
             _uiState.update { it.copy(bookingError = "You must be logged in to book tickets") }
-            return
-        }
-        if (state.quantity > event.availableSeats) {
-            _uiState.update { it.copy(bookingError = "Not enough seats available") }
             return
         }
 

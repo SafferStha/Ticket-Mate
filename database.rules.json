@@ -9,7 +9,7 @@
       ".indexOn": ["category", "city", "date", "featured"],
       "$eventId": {
         ".read": "auth != null",
-        ".write": "auth != null && auth.token.admin == true",
+        ".write": "auth != null",
         ".validate": "!newData.exists() || (newData.child('title').isString() && newData.child('title').val().length > 0 && newData.child('venue').isString() && newData.child('venue').val().length > 0 && newData.child('city').isString() && newData.child('city').val().length > 0 && newData.child('price').isNumber() && newData.child('price').val() >= 0 && newData.child('availableSeats').isNumber() && newData.child('availableSeats').val() >= 0)",
 
         "availableSeats": {

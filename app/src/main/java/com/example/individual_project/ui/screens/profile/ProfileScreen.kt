@@ -54,6 +54,7 @@ import coil.compose.AsyncImage
 import com.example.individual_project.ui.components.ErrorView
 import com.example.individual_project.ui.components.LoadingView
 import com.example.individual_project.ui.components.ProfileAvatar
+import com.example.individual_project.data.model.initials
 import com.example.individual_project.ui.navigation.Screen
 import com.example.individual_project.ui.theme.Spacing
 import com.example.individual_project.ui.theme.TmBlue
@@ -125,11 +126,7 @@ fun ProfileScreen(
             val name      = user?.name?.ifBlank { "User" }      ?: "User"
             val email     = user?.email?.ifBlank { "" }          ?: ""
             val imageUrl  = user?.profileImage?.ifBlank { null } ?: null
-            val initials  = name.split(" ")
-                .take(2)
-                .mapNotNull { it.firstOrNull()?.uppercaseChar() }
-                .joinToString("")
-                .ifBlank { "U" }
+            val initials  = user?.initials ?: "U"
 
             LazyColumn(
                 modifier = Modifier
@@ -235,7 +232,11 @@ fun ProfileScreen(
                                 StatDivider()
                                 StatBadge(value = "${state.favoriteCount}", label = "Favorites")
                                 StatDivider()
-                                StatBadge(value = PriceFormatter.formatShort(state.totalSpent), label = "Spent")
+                                StatBadge(
+                                    value = PriceFormatter.formatShort(state.totalSpent),
+                                    label = "Spent",
+                                    onClick = { navController.navigate(Screen.PaymentHistory.route) }
+                                )
                             }
                         }
                     }
@@ -356,8 +357,17 @@ private fun StatDivider() {
 }
 
 @Composable
-private fun StatBadge(value: String, label: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+private fun StatBadge(
+    value   : String,
+    label   : String,
+    onClick : (() -> Unit)? = null
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier            = Modifier.then(
+            if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+        )
+    ) {
         Text(
             text       = value,
             style      = MaterialTheme.typography.titleMedium,

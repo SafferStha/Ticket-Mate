@@ -62,4 +62,36 @@ class DateFormatterTest {
         assertTrue(formatted.contains("2025"))
         assertTrue(formatted.contains("March"))
     }
+
+    @Test
+    fun `formatDate renders a recognized date as an abbreviated weekday, month, and day`() {
+        assertEquals("Thu, Aug 20", DateFormatter.formatDate("2026-08-20"))
+    }
+
+    @Test
+    fun `formatDate returns the raw string unchanged when no known format matches`() {
+        assertEquals("not-a-date", DateFormatter.formatDate("not-a-date"))
+    }
+
+    @Test
+    fun `formatTime renders a 24-hour input as 12-hour with am pm`() {
+        assertEquals("6:30 PM", DateFormatter.formatTime("18:30"))
+    }
+
+    @Test
+    fun `output is locale-independent even when the JVM default locale is not English`() {
+        val previousDefault = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale.GERMANY)
+            assertEquals("Thu, Aug 20", DateFormatter.formatDate("2026-08-20"))
+            assertEquals("6:30 PM", DateFormatter.formatTime("18:30"))
+        } finally {
+            Locale.setDefault(previousDefault)
+        }
+    }
+
+    @Test
+    fun `parseEventDateTimeMillis returns null when both date and time are blank`() {
+        assertNull(DateFormatter.parseEventDateTimeMillis("", ""))
+    }
 }

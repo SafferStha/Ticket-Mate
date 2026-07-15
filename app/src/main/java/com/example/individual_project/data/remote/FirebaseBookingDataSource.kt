@@ -30,8 +30,10 @@ class FirebaseBookingDataSource @Inject constructor(
     }
 
     suspend fun getUserBookings(userId: String): Resource<List<Booking>> = try {
-        val snapshot = bookingsRef.orderByChild("userId").equalTo(userId).get().await()
-        val bookings = snapshot.children.mapNotNull { it.getValue(Booking::class.java) }
+        val snapshot = bookingsRef.get().await()
+        val bookings = snapshot.children
+            .mapNotNull { it.getValue(Booking::class.java) }
+            .filter { it.userId == userId }
         Resource.Success(bookings)
     } catch (e: Exception) {
         Resource.Error(FirebaseErrorMapper.map(e, "Failed to fetch bookings"), e)

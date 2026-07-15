@@ -39,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -48,6 +49,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.individual_project.ui.components.PrimaryButton
 import com.example.individual_project.ui.navigation.Screen
+import com.example.individual_project.ui.testtags.TestTags
 import com.example.individual_project.ui.theme.IndividualProjectTheme
 import com.example.individual_project.ui.theme.Spacing
 import com.example.individual_project.ui.theme.TmBlue
@@ -152,7 +154,9 @@ fun LoginScreen(
                     { Text(emailError, color = MaterialTheme.colorScheme.error) }
                 } else null,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                modifier        = Modifier.fillMaxWidth(),
+                modifier        = Modifier
+                    .fillMaxWidth()
+                    .testTag(TestTags.LOGIN_EMAIL),
                 shape           = MaterialTheme.shapes.medium,
                 colors          = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -189,7 +193,9 @@ fun LoginScreen(
                     { Text(passwordError, color = MaterialTheme.colorScheme.error) }
                 } else null,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                modifier        = Modifier.fillMaxWidth(),
+                modifier        = Modifier
+                    .fillMaxWidth()
+                    .testTag(TestTags.LOGIN_PASSWORD),
                 shape           = MaterialTheme.shapes.medium,
                 colors          = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -203,7 +209,9 @@ fun LoginScreen(
             Box(modifier = Modifier.fillMaxWidth()) {
                 TextButton(
                     onClick  = { navController.navigate(Screen.ForgotPassword.route) },
-                    modifier = Modifier.align(Alignment.CenterEnd)
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .testTag(TestTags.LOGIN_FORGOT_PASSWORD)
                 ) {
                     Text(
                         text  = "Forgot Password?",
@@ -223,7 +231,8 @@ fun LoginScreen(
                     style     = MaterialTheme.typography.bodySmall,
                     modifier  = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = Spacing.sm),
+                        .padding(bottom = Spacing.sm)
+                        .testTag(TestTags.LOGIN_ERROR),
                     textAlign = TextAlign.Center
                 )
             }
@@ -232,6 +241,7 @@ fun LoginScreen(
             PrimaryButton(
                 text      = "Sign In",
                 isLoading = loginState.isLoading,
+                modifier  = Modifier.testTag(TestTags.LOGIN_SUBMIT),
                 onClick   = { if (validate()) viewModel.login(email, password) }
             )
 
@@ -248,7 +258,10 @@ fun LoginScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                TextButton(onClick = { navController.navigate(Screen.Register.route) }) {
+                TextButton(
+                    onClick  = { navController.navigate(Screen.Register.route) },
+                    modifier = Modifier.testTag(TestTags.LOGIN_REGISTER)
+                ) {
                     Text(
                         text       = "Sign Up",
                         style      = MaterialTheme.typography.labelLarge,

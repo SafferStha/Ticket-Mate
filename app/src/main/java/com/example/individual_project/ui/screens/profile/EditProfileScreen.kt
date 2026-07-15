@@ -53,6 +53,8 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.individual_project.ui.components.LoadingView
 import com.example.individual_project.ui.components.ProfileAvatar
+import com.example.individual_project.data.model.User
+import com.example.individual_project.data.model.initials
 import com.example.individual_project.ui.theme.Spacing
 import com.example.individual_project.ui.theme.TmBlue
 import com.example.individual_project.ui.theme.TmNavyBlue
@@ -138,11 +140,7 @@ fun EditProfileScreen(
                                 contentScale      = ContentScale.Crop
                             )
                         } else {
-                            val initials = state.name.split(" ")
-                                .take(2)
-                                .mapNotNull { it.firstOrNull()?.uppercaseChar() }
-                                .joinToString("")
-                                .ifBlank { "U" }
+                            val initials = User(name = state.name).initials
                             ProfileAvatar(
                                 initials = initials,
                                 size     = 100.dp

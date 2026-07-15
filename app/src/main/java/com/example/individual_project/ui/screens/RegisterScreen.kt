@@ -49,6 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -58,6 +59,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.individual_project.ui.components.PrimaryButton
 import com.example.individual_project.ui.navigation.Screen
+import com.example.individual_project.ui.testtags.TestTags
 import com.example.individual_project.ui.theme.IndividualProjectTheme
 import com.example.individual_project.ui.theme.TmBackground
 import com.example.individual_project.ui.theme.TmBlue
@@ -113,7 +115,10 @@ fun RegisterScreen(
             TopAppBar(
                 title = { Text("Create Account") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(
+                        onClick  = { navController.popBackStack() },
+                        modifier = Modifier.testTag(TestTags.REGISTER_BACK)
+                    ) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -170,7 +175,9 @@ fun RegisterScreen(
                     supportingText = if (nameError.isNotEmpty()) {
                         { Text(nameError, color = TmError) }
                     } else null,
-                    modifier   = Modifier.fillMaxWidth(),
+                    modifier   = Modifier
+                        .fillMaxWidth()
+                        .testTag(TestTags.REGISTER_NAME),
                     shape      = RoundedCornerShape(12.dp),
                     colors     = fieldColors,
                     singleLine = true
@@ -189,7 +196,9 @@ fun RegisterScreen(
                         { Text(emailError, color = TmError) }
                     } else null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    modifier   = Modifier.fillMaxWidth(),
+                    modifier   = Modifier
+                        .fillMaxWidth()
+                        .testTag(TestTags.REGISTER_EMAIL),
                     shape      = RoundedCornerShape(12.dp),
                     colors     = fieldColors,
                     singleLine = true
@@ -204,7 +213,9 @@ fun RegisterScreen(
                     label         = { Text("Phone Number (Optional)") },
                     leadingIcon   = { Icon(Icons.Default.Phone, null, tint = TmBlue) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    modifier   = Modifier.fillMaxWidth(),
+                    modifier   = Modifier
+                        .fillMaxWidth()
+                        .testTag(TestTags.REGISTER_PHONE),
                     shape      = RoundedCornerShape(12.dp),
                     colors     = fieldColors,
                     singleLine = true
@@ -235,7 +246,9 @@ fun RegisterScreen(
                         { Text(passwordError, color = TmError) }
                     } else null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    modifier   = Modifier.fillMaxWidth(),
+                    modifier   = Modifier
+                        .fillMaxWidth()
+                        .testTag(TestTags.REGISTER_PASSWORD),
                     shape      = RoundedCornerShape(12.dp),
                     colors     = fieldColors,
                     singleLine = true
@@ -266,7 +279,9 @@ fun RegisterScreen(
                         { Text(confirmPasswordError, color = TmError) }
                     } else null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    modifier   = Modifier.fillMaxWidth(),
+                    modifier   = Modifier
+                        .fillMaxWidth()
+                        .testTag(TestTags.REGISTER_CONFIRM_PASSWORD),
                     shape      = RoundedCornerShape(12.dp),
                     colors     = fieldColors,
                     singleLine = true
@@ -282,7 +297,8 @@ fun RegisterScreen(
                     Checkbox(
                         checked         = acceptTerms,
                         onCheckedChange = { acceptTerms = it },
-                        colors          = CheckboxDefaults.colors(checkedColor = TmBlue)
+                        colors          = CheckboxDefaults.colors(checkedColor = TmBlue),
+                        modifier        = Modifier.testTag(TestTags.REGISTER_TERMS)
                     )
                     Column(modifier = Modifier.padding(top = 12.dp)) {
                         Row {
@@ -316,7 +332,8 @@ fun RegisterScreen(
                         fontSize  = 13.sp,
                         modifier  = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 8.dp),
+                            .padding(bottom = 8.dp)
+                            .testTag(TestTags.REGISTER_ERROR),
                         textAlign = TextAlign.Center
                     )
                 }
@@ -326,7 +343,9 @@ fun RegisterScreen(
                     text      = "Create Account",
                     isLoading = registerState.isLoading,
                     enabled   = acceptTerms,
-                    modifier  = Modifier.height(54.dp),
+                    modifier  = Modifier
+                        .height(54.dp)
+                        .testTag(TestTags.REGISTER_SUBMIT),
                     onClick   = {
                         var valid = true
                         if (fullName.isBlank()) {

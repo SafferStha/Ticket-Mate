@@ -5,6 +5,7 @@ import com.example.individual_project.data.model.BookingStatus
 import com.example.individual_project.data.remote.FirebaseBookingDataSource
 import com.example.individual_project.domain.repository.BookingRepository
 import com.example.individual_project.domain.repository.EventRepository
+import com.example.individual_project.domain.repository.TicketRepository
 import com.example.individual_project.utils.Resource
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -12,7 +13,8 @@ import javax.inject.Singleton
 @Singleton
 class BookingRepositoryImpl @Inject constructor(
     private val bookingDataSource : FirebaseBookingDataSource,
-    private val eventRepository   : EventRepository
+    private val eventRepository   : EventRepository,
+    private val ticketRepository  : TicketRepository
 ) : BookingRepository {
 
     override suspend fun bookTicket(booking: Booking): Resource<String> {
@@ -64,6 +66,12 @@ class BookingRepositoryImpl @Inject constructor(
         // ── Update status first ────────────────────────────────────────────────
         val cancelResult = bookingDataSource.cancelBooking(bookingId)
         if (cancelResult is Resource.Error) return cancelResult
+
+        // ── Cancel corresponding ticket if exists ──────────────────────────────
+        val ticketResult = ticketRepository.getTicketByBookingId(bookingId)
+        if (ticketResult is Resource.Success && ticketResult.data != null) {
+            ticketRepository.updateTicketStatus(ticketResult.data.id, "CANCELLED")
+        }
 
         // ── Restore seats (best-effort; non-fatal if it fails) ────────────────
         eventRepository.restoreSeats(booking.eventId, booking.quantity)
