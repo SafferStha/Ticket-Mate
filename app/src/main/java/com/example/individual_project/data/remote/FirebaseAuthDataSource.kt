@@ -3,7 +3,9 @@ package com.example.individual_project.data.remote
 import com.example.individual_project.data.model.User
 import com.example.individual_project.utils.AuthErrorMapper
 import com.example.individual_project.utils.Resource
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.tasks.await
@@ -87,6 +89,28 @@ class FirebaseAuthDataSource @Inject constructor(
         val user     = snapshot.getValue(User::class.java)
             ?: return Resource.Error("User profile not found.")
         Resource.Success(user)
+    } catch (e: Exception) {
+        Resource.Error(AuthErrorMapper.map(e), e)
+    }
+
+    /** Re-proves the user's identity with their current password. Required by Firebase
+     *  before a sensitive operation like updatePassword() on a session that isn't fresh. */
+    suspend fun reauthenticate(currentPassword: String): Resource<Unit> = try {
+        val user  = auth.currentUser ?: return Resource.Error("No authenticated user found.")
+        val email = user.email ?: return Resource.Error("No email associated with this account.")
+        val credential = EmailAuthProvider.getCredential(email, currentPassword)
+        user.reauthenticate(credential).await()
+        Resource.Success(Unit)
+    } catch (e: FirebaseAuthInvalidCredentialsException) {
+        Resource.Error("Current password is incorrect.", e)
+    } catch (e: Exception) {
+        Resource.Error(AuthErrorMapper.map(e), e)
+    }
+
+    suspend fun updatePassword(newPassword: String): Resource<Unit> = try {
+        val user = auth.currentUser ?: return Resource.Error("No authenticated user found.")
+        user.updatePassword(newPassword).await()
+        Resource.Success(Unit)
     } catch (e: Exception) {
         Resource.Error(AuthErrorMapper.map(e), e)
     }

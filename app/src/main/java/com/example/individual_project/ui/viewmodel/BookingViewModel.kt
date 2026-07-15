@@ -7,6 +7,8 @@ import com.example.individual_project.data.model.Booking
 import com.example.individual_project.data.model.Event
 import com.example.individual_project.domain.repository.BookingRepository
 import com.example.individual_project.domain.repository.EventRepository
+import com.example.individual_project.notifications.EventReminderScheduler
+import com.example.individual_project.utils.DateFormatter
 import com.example.individual_project.utils.Resource
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -30,8 +32,9 @@ data class BookingUiState(
 
 @HiltViewModel
 class BookingViewModel @Inject constructor(
-    private val eventRepository   : EventRepository,
+    private val eventRepository    : EventRepository,
     private val bookingRepository  : BookingRepository,
+    private val reminderScheduler  : EventReminderScheduler,
     private val firebaseAuth       : FirebaseAuth,
     savedStateHandle               : SavedStateHandle
 ) : ViewModel() {
@@ -82,6 +85,7 @@ class BookingViewModel @Inject constructor(
 
     fun confirmBooking() {
         val state = _uiState.value
+        if (state.isBooking) return
         val event = state.event ?: return
         if (userId.isBlank()) {
             _uiState.update { it.copy(bookingError = "You must be logged in to book tickets") }
@@ -108,8 +112,15 @@ class BookingViewModel @Inject constructor(
             )
 
             when (val result = bookingRepository.bookTicket(booking)) {
-                is Resource.Success -> _uiState.update {
-                    it.copy(isBooking = false, bookingId = result.data)
+                is Resource.Success -> {
+                    _uiState.update { it.copy(isBooking = false, bookingId = result.data) }
+                    reminderScheduler.scheduleReminder(
+                        bookingId        = result.data,
+                        eventId          = event.id,
+                        eventTitle       = event.title,
+                        venue            = "${event.venue}, ${event.city}",
+                        eventEpochMillis = DateFormatter.parseEventDateTimeMillis(event.date, event.time)
+                    )
                 }
                 is Resource.Error   -> _uiState.update {
                     it.copy(isBooking = false, bookingError = result.message)

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -24,12 +25,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,6 +47,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.individual_project.ui.theme.IndividualProjectTheme
@@ -55,13 +59,20 @@ import com.example.individual_project.ui.theme.TmNavyBlue
 import com.example.individual_project.ui.theme.TmSuccess
 import com.example.individual_project.ui.theme.TmTextPrimary
 import com.example.individual_project.ui.theme.TmTextSecondary
+import com.example.individual_project.ui.viewmodel.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ForgotPasswordScreen(navController: NavController) {
+fun ForgotPasswordScreen(
+    navController: NavController,
+    viewModel    : AuthViewModel = hiltViewModel()
+) {
     var email      by remember { mutableStateOf("") }
     var emailError by remember { mutableStateOf("") }
-    var emailSent  by remember { mutableStateOf(false) }
+
+    val resetState by viewModel.resetState.collectAsState()
+    val cooldown    by viewModel.resetCooldown.collectAsState()
+    val emailSent   = resetState.isSuccess
 
     Scaffold(
         topBar = {
@@ -159,7 +170,7 @@ fun ForgotPasswordScreen(navController: NavController) {
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text      = "Didn't receive the email? Check your spam folder or try another email address.",
+                        text      = "Didn't receive the email? Check your spam folder, or resend it below.",
                         fontSize  = 13.sp,
                         color     = TmTextSecondary,
                         textAlign = TextAlign.Center
@@ -184,10 +195,27 @@ fun ForgotPasswordScreen(navController: NavController) {
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    TextButton(onClick = { emailSent = false; email = "" }) {
+                    TextButton(
+                        onClick = { viewModel.sendPasswordReset(email) },
+                        enabled = !resetState.isLoading && cooldown == 0
+                    ) {
+                        Text(
+                            text  = when {
+                                resetState.isLoading -> "Sending…"
+                                cooldown > 0          -> "Resend in ${cooldown}s"
+                                else                  -> "Resend email"
+                            },
+                            color = TmBlue
+                        )
+                    }
+
+                    TextButton(onClick = {
+                        viewModel.clearResetState()
+                        email = ""
+                    }) {
                         Text(
                             text  = "Try a different email",
-                            color = TmBlue
+                            color = TmTextSecondary
                         )
                     }
 
@@ -231,6 +259,16 @@ fun ForgotPasswordScreen(navController: NavController) {
                         singleLine = true
                     )
 
+                    if (resetState.hasError) {
+                        Text(
+                            text      = resetState.error ?: "Failed to send reset email",
+                            color     = TmError,
+                            fontSize  = 13.sp,
+                            textAlign = TextAlign.Center,
+                            modifier  = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
+
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Button(
@@ -240,20 +278,29 @@ fun ForgotPasswordScreen(navController: NavController) {
                                     emailError = "Email is required"
                                 !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches() ->
                                     emailError = "Enter a valid email address"
-                                else -> emailSent = true
+                                else -> viewModel.sendPasswordReset(email)
                             }
                         },
+                        enabled  = !resetState.isLoading,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(54.dp),
                         shape  = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = TmBlue)
                     ) {
-                        Text(
-                            text       = "Send Reset Link",
-                            fontSize   = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        if (resetState.isLoading) {
+                            CircularProgressIndicator(
+                                modifier    = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color       = Color.White
+                            )
+                        } else {
+                            Text(
+                                text       = "Send Reset Link",
+                                fontSize   = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))

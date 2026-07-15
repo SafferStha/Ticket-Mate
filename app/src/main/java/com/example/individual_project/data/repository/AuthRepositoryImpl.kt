@@ -38,6 +38,12 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun sendEmailVerification(): Resource<Unit> =
         authDataSource.sendEmailVerification()
 
+    override suspend fun reauthenticate(currentPassword: String): Resource<Unit> =
+        authDataSource.reauthenticate(currentPassword)
+
+    override suspend fun updatePassword(newPassword: String): Resource<Unit> =
+        authDataSource.updatePassword(newPassword)
+
     override suspend fun reloadUser(): Resource<Unit> =
         authDataSource.reloadUser()
 

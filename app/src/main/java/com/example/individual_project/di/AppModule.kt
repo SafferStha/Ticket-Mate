@@ -4,14 +4,20 @@ import com.example.individual_project.data.repository.AuthRepositoryImpl
 import com.example.individual_project.data.repository.BookingRepositoryImpl
 import com.example.individual_project.data.repository.EventRepositoryImpl
 import com.example.individual_project.data.repository.PaymentRepositoryImpl
+import com.example.individual_project.data.repository.SavedLocationRepositoryImpl
+import com.example.individual_project.data.repository.SavedPaymentMethodRepositoryImpl
 import com.example.individual_project.data.repository.SearchRepositoryImpl
+import com.example.individual_project.data.repository.SettingsRepositoryImpl
 import com.example.individual_project.data.repository.TicketRepositoryImpl
 import com.example.individual_project.data.repository.UserRepositoryImpl
 import com.example.individual_project.domain.repository.AuthRepository
 import com.example.individual_project.domain.repository.BookingRepository
 import com.example.individual_project.domain.repository.EventRepository
 import com.example.individual_project.domain.repository.PaymentRepository
+import com.example.individual_project.domain.repository.SavedLocationRepository
+import com.example.individual_project.domain.repository.SavedPaymentMethodRepository
 import com.example.individual_project.domain.repository.SearchRepository
+import com.example.individual_project.domain.repository.SettingsRepository
 import com.example.individual_project.domain.repository.TicketRepository
 import com.example.individual_project.domain.repository.UserRepository
 import com.google.firebase.auth.FirebaseAuth
@@ -80,4 +86,16 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindSearchRepository(impl: SearchRepositoryImpl): SearchRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSettingsRepository(impl: SettingsRepositoryImpl): SettingsRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSavedLocationRepository(impl: SavedLocationRepositoryImpl): SavedLocationRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSavedPaymentMethodRepository(impl: SavedPaymentMethodRepositoryImpl): SavedPaymentMethodRepository
 }

@@ -14,3 +14,18 @@
 .cxx
 local.properties
 .vscode/*
+.vscode
+
+# Firebase configuration
+google-services.json
+**/google-services.json
+
+# ProGuard/R8 mapping files
+*.pro
+
+
+# Cloud Functions (functions/)
+functions/node_modules/
+functions/lib/
+functions/firebase-debug.log
+functions/firebase-debug.*.log

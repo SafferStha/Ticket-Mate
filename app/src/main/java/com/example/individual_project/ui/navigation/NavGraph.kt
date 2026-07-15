@@ -19,6 +19,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.individual_project.auth.AuthState
 import com.example.individual_project.ui.screens.DashboardScreen
+import com.example.individual_project.ui.screens.admin.AdminDashboardScreen
+import com.example.individual_project.ui.screens.admin.AdminEventFormScreen
 import com.example.individual_project.ui.screens.ForgotPasswordScreen
 import com.example.individual_project.ui.screens.LoginScreen
 import com.example.individual_project.ui.screens.RegisterScreen
@@ -33,10 +35,14 @@ import com.example.individual_project.ui.screens.payment.CheckoutScreen
 import com.example.individual_project.ui.screens.payment.PaymentFailureScreen
 import com.example.individual_project.ui.screens.payment.PaymentSuccessScreen
 import com.example.individual_project.ui.screens.profile.BookingHistoryScreen
+import com.example.individual_project.ui.screens.profile.ChangePasswordScreen
 import com.example.individual_project.ui.screens.profile.EditProfileScreen
 import com.example.individual_project.ui.screens.profile.FavoritesScreen
+import com.example.individual_project.ui.screens.profile.LegalPlaceholderScreen
 import com.example.individual_project.ui.screens.profile.MyTicketsScreen
 import com.example.individual_project.ui.screens.profile.PaymentHistoryScreen
+import com.example.individual_project.ui.screens.profile.SavedLocationsScreen
+import com.example.individual_project.ui.screens.profile.SavedPaymentMethodsScreen
 import com.example.individual_project.ui.screens.profile.SettingsScreen
 import com.example.individual_project.ui.screens.profile.TicketDetailScreen
 import com.example.individual_project.ui.viewmodel.AuthViewModel
@@ -45,7 +51,10 @@ private const val TRANSITION_DURATION = 300
 private const val FADE_EXIT_DURATION  = 150
 
 @Composable
-fun NavGraph(navController: NavHostController) {
+fun NavGraph(
+    navController         : NavHostController,
+    pendingDeepLinkEventId: String? = null
+) {
     NavHost(
         navController      = navController,
         startDestination   = Screen.Splash.route,
@@ -75,7 +84,9 @@ fun NavGraph(navController: NavHostController) {
         }
     ) {
         // ── Auth flow ────────────────────────────────────────────────────────
-        composable(Screen.Splash.route)         { SplashScreen(navController) }
+        composable(Screen.Splash.route) {
+            SplashScreen(navController, pendingDeepLinkEventId = pendingDeepLinkEventId)
+        }
         composable(Screen.Login.route)          { LoginScreen(navController) }
         composable(Screen.Register.route)       { RegisterScreen(navController) }
         composable(Screen.ForgotPassword.route) { ForgotPasswordScreen(navController) }
@@ -177,6 +188,12 @@ fun NavGraph(navController: NavHostController) {
             }
         }
 
+        composable(Screen.ChangePassword.route) {
+            AuthGuard(navController) {
+                ChangePasswordScreen(navController = navController)
+            }
+        }
+
         composable(Screen.MyTickets.route) {
             AuthGuard(navController) {
                 MyTicketsScreen(navController = navController)
@@ -215,6 +232,43 @@ fun NavGraph(navController: NavHostController) {
                 SettingsScreen(navController = navController)
             }
         }
+
+        composable(Screen.PrivacyPolicy.route) {
+            AuthGuard(navController) {
+                LegalPlaceholderScreen(navController = navController, title = "Privacy Policy")
+            }
+        }
+
+        composable(Screen.SavedLocations.route) {
+            AuthGuard(navController) {
+                SavedLocationsScreen(navController = navController)
+            }
+        }
+
+        composable(Screen.SavedPaymentMethods.route) {
+            AuthGuard(navController) {
+                SavedPaymentMethodsScreen(navController = navController)
+            }
+        }
+
+        // ── Admin flow ───────────────────────────────────────────────────────
+        composable(Screen.AdminDashboard.route) {
+            AdminGuard(navController) {
+                AdminDashboardScreen(navController = navController)
+            }
+        }
+
+        composable(
+            route     = Screen.AdminEventForm.route,
+            arguments = listOf(navArgument("eventId") {
+                type     = NavType.StringType
+                nullable = true
+            })
+        ) {
+            AdminGuard(navController) {
+                AdminEventFormScreen(navController = navController)
+            }
+        }
     }
 }
 
@@ -251,6 +305,43 @@ private fun AuthGuard(
     }
 
     if (authState == AuthState.Authenticated) {
+        content()
+    }
+}
+
+/**
+ * Route guard for admin-only screens. Requires both authentication AND the `admin` Firebase
+ * Auth custom claim (see AdminStateManager). This is a UI convenience, not the actual security
+ * boundary -- a user who bypasses this guard (or calls the repository directly) is still
+ * rejected by database.rules.json, which independently checks the same claim server-side. A
+ * non-admin who reaches this route (e.g. by deep link) is redirected to Dashboard, not shown
+ * any admin content or even a flash of it.
+ */
+@Composable
+private fun AdminGuard(
+    navController: NavController,
+    viewModel    : AuthViewModel = hiltViewModel(),
+    content      : @Composable () -> Unit
+) {
+    val authState by viewModel.authState.collectAsState()
+    val isAdmin    by viewModel.isAdmin.collectAsState()
+
+    LaunchedEffect(authState, isAdmin) {
+        when {
+            authState == AuthState.Unauthenticated -> navController.navigate(Screen.Login.route) {
+                popUpTo(0) { inclusive = true }
+            }
+            authState == AuthState.EmailNotVerified -> navController.navigate(Screen.VerifyEmail.route) {
+                popUpTo(0) { inclusive = true }
+            }
+            authState == AuthState.Authenticated && !isAdmin -> navController.navigate(Screen.Dashboard.route) {
+                popUpTo(0) { inclusive = true }
+            }
+            else -> Unit
+        }
+    }
+
+    if (authState == AuthState.Authenticated && isAdmin) {
         content()
     }
 }

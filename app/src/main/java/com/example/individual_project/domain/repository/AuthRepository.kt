@@ -12,6 +12,8 @@ interface AuthRepository {
     suspend fun register(email: String, password: String, name: String, contact: String): Resource<Unit>
     suspend fun sendPasswordReset(email: String): Resource<Unit>
     suspend fun sendEmailVerification(): Resource<Unit>
+    suspend fun reauthenticate(currentPassword: String): Resource<Unit>
+    suspend fun updatePassword(newPassword: String): Resource<Unit>
     suspend fun reloadUser(): Resource<Unit>
     suspend fun getUserProfile(uid: String): Resource<User>
     fun logout(): Resource<Unit>

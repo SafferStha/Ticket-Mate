@@ -1,6 +1,7 @@
 package com.example.individual_project.data.remote
 
 import com.example.individual_project.data.model.Event
+import com.example.individual_project.utils.FirebaseErrorMapper
 import com.example.individual_project.utils.Resource
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -41,7 +42,7 @@ class FirebaseEventDataSource @Inject constructor(
         val events   = snapshot.children.mapNotNull { it.getValue(Event::class.java) }
         Resource.Success(events)
     } catch (e: Exception) {
-        Resource.Error(e.message ?: "Failed to fetch events", e)
+        Resource.Error(FirebaseErrorMapper.map(e, "Failed to fetch events"), e)
     }
 
     suspend fun getFeaturedEvents(): Resource<List<Event>> = try {
@@ -49,7 +50,7 @@ class FirebaseEventDataSource @Inject constructor(
         val events   = snapshot.children.mapNotNull { it.getValue(Event::class.java) }
         Resource.Success(events)
     } catch (e: Exception) {
-        Resource.Error(e.message ?: "Failed to fetch featured events", e)
+        Resource.Error(FirebaseErrorMapper.map(e, "Failed to fetch featured events"), e)
     }
 
     // Returns all events ordered by date (Firebase orders by key unless .indexOn is set).
@@ -59,7 +60,7 @@ class FirebaseEventDataSource @Inject constructor(
         val events   = snapshot.children.mapNotNull { it.getValue(Event::class.java) }
         Resource.Success(events)
     } catch (e: Exception) {
-        Resource.Error(e.message ?: "Failed to fetch upcoming events", e)
+        Resource.Error(FirebaseErrorMapper.map(e, "Failed to fetch upcoming events"), e)
     }
 
     suspend fun getEventById(eventId: String): Resource<Event> = try {
@@ -68,7 +69,7 @@ class FirebaseEventDataSource @Inject constructor(
             ?: return Resource.Error("Event not found: $eventId")
         Resource.Success(event)
     } catch (e: Exception) {
-        Resource.Error(e.message ?: "Failed to fetch event", e)
+        Resource.Error(FirebaseErrorMapper.map(e, "Failed to fetch event"), e)
     }
 
     // Client-side full-text search across title, category, venue, city.
@@ -86,7 +87,7 @@ class FirebaseEventDataSource @Inject constructor(
             }
         Resource.Success(events)
     } catch (e: Exception) {
-        Resource.Error(e.message ?: "Search failed", e)
+        Resource.Error(FirebaseErrorMapper.map(e, "Search failed"), e)
     }
 
     // Uses Firebase server-side filter. Requires .indexOn: ["category"] in rules.
@@ -95,7 +96,7 @@ class FirebaseEventDataSource @Inject constructor(
         val events   = snapshot.children.mapNotNull { it.getValue(Event::class.java) }
         Resource.Success(events)
     } catch (e: Exception) {
-        Resource.Error(e.message ?: "Failed to fetch events by category", e)
+        Resource.Error(FirebaseErrorMapper.map(e, "Failed to fetch events by category"), e)
     }
 
     suspend fun createEvent(event: Event): Resource<String> = try {
@@ -105,21 +106,21 @@ class FirebaseEventDataSource @Inject constructor(
         eventsRef.child(key).setValue(eventWithId).await()
         Resource.Success(key)
     } catch (e: Exception) {
-        Resource.Error(e.message ?: "Failed to create event", e)
+        Resource.Error(FirebaseErrorMapper.map(e, "Failed to create event"), e)
     }
 
     suspend fun updateEvent(event: Event): Resource<Unit> = try {
         eventsRef.child(event.id).setValue(event).await()
         Resource.Success(Unit)
     } catch (e: Exception) {
-        Resource.Error(e.message ?: "Failed to update event", e)
+        Resource.Error(FirebaseErrorMapper.map(e, "Failed to update event"), e)
     }
 
     suspend fun deleteEvent(eventId: String): Resource<Unit> = try {
         eventsRef.child(eventId).removeValue().await()
         Resource.Success(Unit)
     } catch (e: Exception) {
-        Resource.Error(e.message ?: "Failed to delete event", e)
+        Resource.Error(FirebaseErrorMapper.map(e, "Failed to delete event"), e)
     }
 
     // ── Favorites ──────────────────────────────────────────────────────────────
@@ -129,7 +130,7 @@ class FirebaseEventDataSource @Inject constructor(
         val snapshot = favRef(userId, eventId).get().await()
         Resource.Success(snapshot.exists() && snapshot.getValue(Boolean::class.java) == true)
     } catch (e: Exception) {
-        Resource.Error(e.message ?: "Failed to check favorite status", e)
+        Resource.Error(FirebaseErrorMapper.map(e, "Failed to check favorite status"), e)
     }
 
     // Read-modify-write: removes the node if it exists, sets true if it doesn't.
@@ -139,7 +140,7 @@ class FirebaseEventDataSource @Inject constructor(
         if (snapshot.exists()) ref.removeValue().await() else ref.setValue(true).await()
         Resource.Success(Unit)
     } catch (e: Exception) {
-        Resource.Error(e.message ?: "Failed to toggle favorite", e)
+        Resource.Error(FirebaseErrorMapper.map(e, "Failed to toggle favorite"), e)
     }
 
     // ── Seat management (atomic via Firebase transaction) ──────────────────────
@@ -180,7 +181,7 @@ class FirebaseEventDataSource @Inject constructor(
             .reversed()
         Resource.Success(events)
     } catch (e: Exception) {
-        Resource.Error(e.message ?: "Failed to fetch trending events", e)
+        Resource.Error(FirebaseErrorMapper.map(e, "Failed to fetch trending events"), e)
     }
 
     // Recommended: events in categories the user has favorited.
@@ -214,7 +215,7 @@ class FirebaseEventDataSource @Inject constructor(
                 }
             )
         } catch (e: Exception) {
-            Resource.Error(e.message ?: "Failed to fetch recommendations", e)
+            Resource.Error(FirebaseErrorMapper.map(e, "Failed to fetch recommendations"), e)
         }
     }
 
@@ -224,7 +225,7 @@ class FirebaseEventDataSource @Inject constructor(
         val events   = snapshot.children.mapNotNull { it.getValue(Event::class.java) }
         Resource.Success(events)
     } catch (e: Exception) {
-        Resource.Error(e.message ?: "Failed to fetch events by city", e)
+        Resource.Error(FirebaseErrorMapper.map(e, "Failed to fetch events by city"), e)
     }
 
     // Restores seats after cancellation. Also atomic to prevent count drift.

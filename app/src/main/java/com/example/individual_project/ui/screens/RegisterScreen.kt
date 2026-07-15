@@ -22,8 +22,6 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,6 +35,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,23 +49,31 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.example.individual_project.navigation.Screen
+import com.example.individual_project.ui.components.PrimaryButton
+import com.example.individual_project.ui.navigation.Screen
 import com.example.individual_project.ui.theme.IndividualProjectTheme
 import com.example.individual_project.ui.theme.TmBackground
 import com.example.individual_project.ui.theme.TmBlue
 import com.example.individual_project.ui.theme.TmError
 import com.example.individual_project.ui.theme.TmLightBlue
 import com.example.individual_project.ui.theme.TmNavyBlue
+import com.example.individual_project.ui.theme.TmTextPrimary
 import com.example.individual_project.ui.theme.TmTextSecondary
+import com.example.individual_project.ui.viewmodel.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RegisterScreen(navController: NavController) {
+fun RegisterScreen(
+    navController: NavController,
+    viewModel    : AuthViewModel = hiltViewModel()
+) {
     var fullName              by remember { mutableStateOf("") }
     var email                 by remember { mutableStateOf("") }
     var phone                 by remember { mutableStateOf("") }
@@ -80,10 +88,24 @@ fun RegisterScreen(navController: NavController) {
     var passwordError        by remember { mutableStateOf("") }
     var confirmPasswordError by remember { mutableStateOf("") }
 
+    val registerState by viewModel.registerState.collectAsState()
+
+    // Navigate to email verification once the account has actually been created in Firebase
+    LaunchedEffect(registerState.data) {
+        if (registerState.data != null) {
+            viewModel.clearRegisterState()
+            navController.navigate(Screen.VerifyEmail.route) {
+                popUpTo(Screen.Login.route) { inclusive = true }
+            }
+        }
+    }
+
     val fieldColors = OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = TmBlue,
-        focusedLabelColor  = TmBlue,
-        cursorColor        = TmBlue
+        focusedBorderColor   = TmBlue,
+        focusedLabelColor    = TmBlue,
+        cursorColor          = TmBlue,
+        focusedTextColor     = TmTextPrimary,
+        unfocusedTextColor   = TmTextPrimary
     )
 
     Scaffold(
@@ -284,11 +306,28 @@ fun RegisterScreen(navController: NavController) {
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Firebase error (mapped — no raw exception messages)
+                if (registerState.hasError) {
+                    Text(
+                        text      = registerState.error ?: "",
+                        color     = TmError,
+                        fontSize  = 13.sp,
+                        modifier  = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        textAlign = TextAlign.Center
+                    )
+                }
 
                 // Create Account button
-                Button(
-                    onClick = {
+                PrimaryButton(
+                    text      = "Create Account",
+                    isLoading = registerState.isLoading,
+                    enabled   = acceptTerms,
+                    modifier  = Modifier.height(54.dp),
+                    onClick   = {
                         var valid = true
                         if (fullName.isBlank()) {
                             nameError = "Full name is required"; valid = false
@@ -307,24 +346,10 @@ fun RegisterScreen(navController: NavController) {
                             confirmPasswordError = "Passwords do not match"; valid = false
                         }
                         if (valid && acceptTerms) {
-                            navController.navigate(Screen.Dashboard.route) {
-                                popUpTo(Screen.Login.route) { inclusive = true }
-                            }
+                            viewModel.register(email, password, fullName, phone)
                         }
-                    },
-                    enabled  = acceptTerms,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(54.dp),
-                    shape  = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = TmBlue)
-                ) {
-                    Text(
-                        text       = "Create Account",
-                        fontSize   = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                    }
+                )
 
                 Spacer(modifier = Modifier.height(24.dp))
 

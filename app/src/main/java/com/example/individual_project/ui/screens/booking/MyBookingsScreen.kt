@@ -12,15 +12,24 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,6 +49,7 @@ import androidx.navigation.NavController
 import com.example.individual_project.data.model.Booking
 import com.example.individual_project.data.model.BookingStatus
 import com.example.individual_project.domain.repository.BookingRepository
+import com.example.individual_project.notifications.EventReminderScheduler
 import com.example.individual_project.ui.components.EmptyState
 import com.example.individual_project.ui.components.ErrorView
 import com.example.individual_project.ui.components.LoadingView
@@ -59,6 +69,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -67,6 +78,7 @@ import javax.inject.Inject
 @HiltViewModel
 class MyBookingsViewModel @Inject constructor(
     private val bookingRepository : BookingRepository,
+    private val reminderScheduler : EventReminderScheduler,
     private val firebaseAuth      : FirebaseAuth,
     savedStateHandle              : SavedStateHandle
 ) : ViewModel() {
@@ -75,6 +87,13 @@ class MyBookingsViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(UiState<List<Booking>>())
     val state: StateFlow<UiState<List<Booking>>> = _state.asStateFlow()
+
+    // Booking ids currently being cancelled -- prevents duplicate taps per item.
+    private val _cancellingIds = MutableStateFlow<Set<String>>(emptySet())
+    val cancellingIds: StateFlow<Set<String>> = _cancellingIds.asStateFlow()
+
+    private val _actionError = MutableStateFlow<String?>(null)
+    val actionError: StateFlow<String?> = _actionError.asStateFlow()
 
     init {
         loadBookings()
@@ -96,11 +115,19 @@ class MyBookingsViewModel @Inject constructor(
     }
 
     fun cancelBooking(bookingId: String) {
+        if (bookingId in _cancellingIds.value) return
         viewModelScope.launch {
-            bookingRepository.cancelBooking(bookingId)
+            _cancellingIds.update { it + bookingId }
+            when (val result = bookingRepository.cancelBooking(bookingId)) {
+                is Resource.Error -> _actionError.value = result.message
+                else              -> reminderScheduler.cancelReminder(bookingId)
+            }
             loadBookings()
+            _cancellingIds.update { it - bookingId }
         }
     }
+
+    fun clearActionError() { _actionError.value = null }
 }
 
 // ── Screen ────────────────────────────────────────────────────────────────────
@@ -111,12 +138,42 @@ fun MyBookingsScreen(
     navController : NavController,
     viewModel     : MyBookingsViewModel = hiltViewModel()
 ) {
-    val state    by viewModel.state.collectAsState()
-    var tabIndex by remember { mutableStateOf(0) }
+    val state         by viewModel.state.collectAsState()
+    val cancellingIds by viewModel.cancellingIds.collectAsState()
+    val actionError   by viewModel.actionError.collectAsState()
+    var tabIndex      by remember { mutableStateOf(0) }
+    var pendingCancelBookingId by remember { mutableStateOf<String?>(null) }
+    val snackbarHost = remember { SnackbarHostState() }
 
+    LaunchedEffect(actionError) {
+        actionError?.let {
+            snackbarHost.showSnackbar(it)
+            viewModel.clearActionError()
+        }
+    }
+
+    pendingCancelBookingId?.let { bookingId ->
+        AlertDialog(
+            onDismissRequest = { pendingCancelBookingId = null },
+            title            = { Text("Cancel booking?") },
+            text             = { Text("This can't be undone. Your seats will be released.") },
+            confirmButton    = {
+                TextButton(onClick = {
+                    viewModel.cancelBooking(bookingId)
+                    pendingCancelBookingId = null
+                }) { Text("Cancel Booking", color = TmError) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingCancelBookingId = null }) { Text("Keep Booking") }
+            }
+        )
+    }
+
+    Scaffold(snackbarHost = { SnackbarHost(snackbarHost) }) { scaffoldPadding ->
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .padding(scaffoldPadding)
             .background(MaterialTheme.colorScheme.background)
     ) {
         // ── Header ────────────────────────────────────────────────────────────
@@ -193,7 +250,8 @@ fun MyBookingsScreen(
                                         Screen.BookingSuccess.createRoute(booking.id)
                                     )
                                 },
-                                onCancel      = { viewModel.cancelBooking(booking.id) }
+                                onCancel      = { pendingCancelBookingId = booking.id },
+                                isCancelling  = booking.id in cancellingIds
                             )
                         }
                         item { Spacer(modifier = Modifier.height(Spacing.md)) }
@@ -202,15 +260,17 @@ fun MyBookingsScreen(
             }
         }
     }
+    }
 }
 
 // ── Booking card ──────────────────────────────────────────────────────────────
 
 @Composable
 private fun BookingCard(
-    booking  : Booking,
-    onClick  : () -> Unit,
-    onCancel : () -> Unit
+    booking     : Booking,
+    onClick     : () -> Unit,
+    onCancel    : () -> Unit,
+    isCancelling: Boolean = false
 ) {
     val statusColor = when (booking.bookingStatus) {
         BookingStatus.CONFIRMED.name  -> TmSuccess
@@ -285,12 +345,28 @@ private fun BookingCard(
             // ── Cancel action (only for active bookings) ──────────────────────
             if (booking.bookingStatus == BookingStatus.CONFIRMED.name) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
-                Text(
-                    text     = "Cancel Booking",
-                    style    = MaterialTheme.typography.labelSmall,
-                    color    = TmError,
-                    modifier = Modifier.clickable { onCancel() }
-                )
+                if (isCancelling) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(
+                            modifier    = Modifier.size(12.dp),
+                            strokeWidth = 2.dp,
+                            color       = TmError
+                        )
+                        Spacer(modifier = Modifier.width(Spacing.xs))
+                        Text(
+                            text  = "Cancelling…",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TmError
+                        )
+                    }
+                } else {
+                    Text(
+                        text     = "Cancel Booking",
+                        style    = MaterialTheme.typography.labelSmall,
+                        color    = TmError,
+                        modifier = Modifier.clickable { onCancel() }
+                    )
+                }
             }
         }
     }

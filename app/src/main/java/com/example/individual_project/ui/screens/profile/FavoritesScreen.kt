@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -61,6 +62,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -77,6 +79,10 @@ class FavoritesViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(UiState<List<Event>>())
     val state: StateFlow<UiState<List<Event>>> = _state.asStateFlow()
+
+    // Event ids currently being removed — prevents duplicate taps per item
+    private val _removingIds = MutableStateFlow<Set<String>>(emptySet())
+    val removingIds: StateFlow<Set<String>> = _removingIds.asStateFlow()
 
     init {
         loadFavorites()
@@ -114,9 +120,12 @@ class FavoritesViewModel @Inject constructor(
     }
 
     fun removeFavorite(eventId: String) {
+        if (eventId in _removingIds.value) return
         viewModelScope.launch {
+            _removingIds.update { it + eventId }
             userRepository.removeFavorite(uid, eventId)
             loadFavorites()
+            _removingIds.update { it - eventId }
         }
     }
 }
@@ -129,7 +138,8 @@ fun FavoritesScreen(
     navController: NavController,
     viewModel    : FavoritesViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    val state       by viewModel.state.collectAsState()
+    val removingIds by viewModel.removingIds.collectAsState()
 
     Scaffold(
         topBar = {
@@ -179,13 +189,14 @@ fun FavoritesScreen(
                             item { Spacer(modifier = Modifier.height(Spacing.sm)) }
                             items(events, key = { it.id }) { event ->
                                 FavoriteEventCard(
-                                    event    = event,
-                                    onClick  = {
+                                    event      = event,
+                                    onClick    = {
                                         navController.navigate(
                                             Screen.EventDetail.createRoute(event.id)
                                         )
                                     },
-                                    onRemove = { viewModel.removeFavorite(event.id) }
+                                    onRemove   = { viewModel.removeFavorite(event.id) },
+                                    isRemoving = event.id in removingIds
                                 )
                             }
                             item { Spacer(modifier = Modifier.height(Spacing.md)) }
@@ -199,9 +210,10 @@ fun FavoritesScreen(
 
 @Composable
 private fun FavoriteEventCard(
-    event   : Event,
-    onClick : () -> Unit,
-    onRemove: () -> Unit
+    event     : Event,
+    onClick   : () -> Unit,
+    onRemove  : () -> Unit,
+    isRemoving: Boolean = false
 ) {
     Surface(
         modifier        = Modifier
@@ -269,12 +281,20 @@ private fun FavoriteEventCard(
             }
 
             // Remove from favorites
-            IconButton(onClick = onRemove) {
-                Icon(
-                    Icons.Default.FavoriteBorder, null,
-                    tint     = TmError,
-                    modifier = Modifier.size(Spacing.iconLg)
-                )
+            IconButton(onClick = onRemove, enabled = !isRemoving) {
+                if (isRemoving) {
+                    CircularProgressIndicator(
+                        modifier    = Modifier.size(Spacing.iconLg - 8.dp),
+                        strokeWidth = 2.dp,
+                        color       = TmError
+                    )
+                } else {
+                    Icon(
+                        Icons.Default.FavoriteBorder, null,
+                        tint     = TmError,
+                        modifier = Modifier.size(Spacing.iconLg)
+                    )
+                }
             }
         }
     }

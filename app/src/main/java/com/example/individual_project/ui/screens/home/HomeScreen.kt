@@ -18,10 +18,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -64,12 +62,16 @@ fun HomeScreen(
     val categories       by viewModel.categories.collectAsState()
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val selectedCity     by viewModel.selectedCity.collectAsState()
+    val favoriteIds      by viewModel.favoriteIds.collectAsState()
 
-    val featuredList    = featuredState.data?.map { it.toUiModel() }    ?: emptyList()
-    val trendingList    = trendingState.data?.map { it.toUiModel() }    ?: emptyList()
-    val recommendedList = recommendedState.data?.map { it.toUiModel() } ?: emptyList()
-    val nearbyList      = nearbyState.data?.map { it.toUiModel() }      ?: emptyList()
-    val eventsList      = eventsState.data?.map { it.toUiModel() }      ?: emptyList()
+    fun List<com.example.individual_project.data.model.Event>.toUiModels() =
+        map { it.toUiModel().copy(isLiked = it.id in favoriteIds) }
+
+    val featuredList    = featuredState.data?.toUiModels()    ?: emptyList()
+    val trendingList    = trendingState.data?.toUiModels()    ?: emptyList()
+    val recommendedList = recommendedState.data?.toUiModels() ?: emptyList()
+    val nearbyList      = nearbyState.data?.toUiModels()      ?: emptyList()
+    val eventsList      = eventsState.data?.toUiModels()      ?: emptyList()
 
     val eventsHeader = if (selectedCategory == "All") "All Events" else selectedCategory
 
@@ -110,19 +112,7 @@ fun HomeScreen(
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                        verticalAlignment     = Alignment.CenterVertically
-                    ) {
-                        IconButton(onClick = {}) {
-                            Icon(
-                                Icons.Default.Notifications, null,
-                                tint     = Color.White,
-                                modifier = Modifier.size(Spacing.iconMd)
-                            )
-                        }
-                        ProfileAvatar(initials = "TM", size = Spacing.avatarSm)
-                    }
+                    ProfileAvatar(initials = "TM", size = Spacing.avatarSm)
                 }
             }
         }
@@ -170,7 +160,6 @@ fun HomeScreen(
             Column(modifier = Modifier.background(MaterialTheme.colorScheme.background)) {
                 SectionHeader(
                     title         = "🌟 Featured Events",
-                    onActionClick = {},
                     modifier      = Modifier.padding(
                         horizontal = Spacing.screenHorizontal,
                         vertical   = Spacing.md
@@ -238,8 +227,7 @@ fun HomeScreen(
                 Column(modifier = Modifier.padding(top = Spacing.md)) {
                     SectionHeader(
                         title         = "🔥 Trending Now",
-                        onActionClick = {},
-                        modifier      = Modifier.padding(
+                            modifier      = Modifier.padding(
                             horizontal = Spacing.screenHorizontal,
                             vertical   = Spacing.sm
                         )
@@ -270,8 +258,7 @@ fun HomeScreen(
                 Column(modifier = Modifier.padding(top = Spacing.sm)) {
                     SectionHeader(
                         title         = "✨ Recommended for You",
-                        onActionClick = {},
-                        modifier      = Modifier.padding(
+                            modifier      = Modifier.padding(
                             horizontal = Spacing.screenHorizontal,
                             vertical   = Spacing.sm
                         )
@@ -282,9 +269,10 @@ fun HomeScreen(
                     ) {
                         items(recommendedList, key = { it.id }) { event ->
                             EventCard(
-                                event    = event,
-                                onClick  = { onEventClick(event.id) },
-                                modifier = Modifier.width(300.dp)
+                                event           = event,
+                                onClick         = { onEventClick(event.id) },
+                                onFavoriteClick = { viewModel.toggleFavorite(event.id) },
+                                modifier        = Modifier.width(300.dp)
                             )
                         }
                     }
@@ -333,9 +321,10 @@ fun HomeScreen(
                         ) {
                             items(nearbyList, key = { it.id }) { event ->
                                 EventCard(
-                                    event    = event,
-                                    onClick  = { onEventClick(event.id) },
-                                    modifier = Modifier.width(300.dp)
+                                    event           = event,
+                                    onClick         = { onEventClick(event.id) },
+                                    onFavoriteClick = { viewModel.toggleFavorite(event.id) },
+                                    modifier        = Modifier.width(300.dp)
                                 )
                             }
                         }
@@ -348,7 +337,7 @@ fun HomeScreen(
         item {
             SectionHeader(
                 title         = eventsHeader,
-                onActionClick = {},
+                actionLabel   = null,
                 modifier      = Modifier.padding(
                     horizontal = Spacing.screenHorizontal,
                     vertical   = Spacing.sm
@@ -376,8 +365,9 @@ fun HomeScreen(
             }
             else -> items(eventsList, key = { it.id }) { event ->
                 EventCard(
-                    event    = event,
-                    onClick  = { onEventClick(event.id) },
+                    event           = event,
+                    onClick         = { onEventClick(event.id) },
+                    onFavoriteClick = { viewModel.toggleFavorite(event.id) },
                     modifier = Modifier.padding(
                         horizontal = Spacing.screenHorizontal,
                         vertical   = Spacing.xs

@@ -6,6 +6,7 @@ import com.example.individual_project.data.model.Event
 import com.example.individual_project.data.model.SearchHistoryItem
 import com.example.individual_project.domain.repository.EventRepository
 import com.example.individual_project.domain.repository.SearchRepository
+import com.example.individual_project.domain.repository.UserRepository
 import com.example.individual_project.ui.model.FilterState
 import com.example.individual_project.ui.model.UiState
 import com.example.individual_project.utils.Resource
@@ -16,6 +17,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -23,6 +25,7 @@ import javax.inject.Inject
 class SearchViewModel @Inject constructor(
     private val eventRepository  : EventRepository,
     private val searchRepository : SearchRepository,
+    private val userRepository   : UserRepository,
     private val auth             : FirebaseAuth
 ) : ViewModel() {
 
@@ -32,6 +35,13 @@ class SearchViewModel @Inject constructor(
 
     private val _searchResults = MutableStateFlow(UiState<List<Event>>())
     val searchResults: StateFlow<UiState<List<Event>>> = _searchResults.asStateFlow()
+
+    // ── Favorites ─────────────────────────────────────────────────────────────
+    private val _favoriteIds = MutableStateFlow<Set<String>>(emptySet())
+    val favoriteIds: StateFlow<Set<String>> = _favoriteIds.asStateFlow()
+
+    private val _favoriteLoadingIds = MutableStateFlow<Set<String>>(emptySet())
+    val favoriteLoadingIds: StateFlow<Set<String>> = _favoriteLoadingIds.asStateFlow()
 
     // ── Discovery state ─────────────────────────────────────────────────────────
     private val _searchHistory = MutableStateFlow<List<SearchHistoryItem>>(emptyList())
@@ -53,6 +63,30 @@ class SearchViewModel @Inject constructor(
     init {
         loadSearchHistory()
         loadTrendingKeywords()
+        loadFavoriteIds()
+    }
+
+    fun toggleFavorite(eventId: String) {
+        val uid = userId ?: return
+        if (eventId in _favoriteLoadingIds.value) return
+        val wasFavorite = eventId in _favoriteIds.value
+        viewModelScope.launch {
+            _favoriteIds.update { if (wasFavorite) it - eventId else it + eventId }
+            _favoriteLoadingIds.update { it + eventId }
+            val result = eventRepository.toggleFavorite(eventId, uid)
+            if (result is Resource.Error) {
+                _favoriteIds.update { if (wasFavorite) it + eventId else it - eventId }
+            }
+            _favoriteLoadingIds.update { it - eventId }
+        }
+    }
+
+    private fun loadFavoriteIds() {
+        val uid = userId ?: return
+        viewModelScope.launch {
+            val result = userRepository.getFavoriteEventIds(uid)
+            if (result is Resource.Success) _favoriteIds.value = result.data.toSet()
+        }
     }
 
     // ── Query handling ──────────────────────────────────────────────────────────

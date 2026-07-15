@@ -20,6 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -56,6 +57,7 @@ import com.example.individual_project.ui.theme.TmBlue
 import com.example.individual_project.ui.theme.TmGold
 import com.example.individual_project.ui.theme.TmNavyBlue
 import com.example.individual_project.ui.theme.TmSuccess
+import com.example.individual_project.ui.theme.TmWarning
 import com.example.individual_project.ui.viewmodel.PaymentMethod
 import com.example.individual_project.ui.viewmodel.PaymentViewModel
 import com.example.individual_project.utils.PriceFormatter
@@ -190,6 +192,32 @@ fun CheckoutScreen(
                             .verticalScroll(rememberScrollState())
                             .background(MaterialTheme.colorScheme.background)
                     ) {
+                        // ── Demo payment notice ──────────────────────────────────────
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
+                            shape = MaterialTheme.shapes.medium,
+                            color = TmWarning.copy(alpha = 0.12f)
+                        ) {
+                            Row(
+                                modifier          = Modifier.padding(Spacing.sm),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.Info, null,
+                                    tint     = TmWarning,
+                                    modifier = Modifier.size(Spacing.iconSm)
+                                )
+                                Spacer(modifier = Modifier.width(Spacing.xs))
+                                Text(
+                                    text  = "Demo Payment — this is a simulation. No real charge will be made and no real payment gateway is contacted.",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+
                         // ── Event summary ──────────────────────────────────────────
                         CheckoutSection(title = "Event Summary") {
                             CheckoutRow("Event",    booking.eventTitle)

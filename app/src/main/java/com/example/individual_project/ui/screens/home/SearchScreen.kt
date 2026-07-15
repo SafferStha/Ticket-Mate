@@ -75,8 +75,9 @@ fun SearchScreen(
     val trendingKeywords by viewModel.trendingKeywords.collectAsState()
     val filterState      by viewModel.filterState.collectAsState()
     val isFilterVisible  by viewModel.isFilterSheetVisible.collectAsState()
+    val favoriteIds      by viewModel.favoriteIds.collectAsState()
 
-    val resultList = searchResults.data?.map { it.toUiModel() } ?: emptyList()
+    val resultList = searchResults.data?.map { it.toUiModel().copy(isLiked = it.id in favoriteIds) } ?: emptyList()
 
     if (isFilterVisible) {
         FilterBottomSheet(
@@ -381,8 +382,9 @@ fun SearchScreen(
                         }
                         items(resultList, key = { it.id }) { event ->
                             EventCard(
-                                event    = event,
-                                onClick  = { onEventClick(event.id) },
+                                event           = event,
+                                onClick         = { onEventClick(event.id) },
+                                onFavoriteClick = { viewModel.toggleFavorite(event.id) },
                                 modifier = Modifier.padding(
                                     horizontal = Spacing.screenHorizontal,
                                     vertical   = Spacing.xs

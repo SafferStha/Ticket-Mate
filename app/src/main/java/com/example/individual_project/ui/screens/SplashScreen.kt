@@ -49,8 +49,9 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(
-    navController: NavController,
-    viewModel    : AuthViewModel = hiltViewModel()
+    navController         : NavController,
+    viewModel              : AuthViewModel = hiltViewModel(),
+    pendingDeepLinkEventId : String?        = null
 ) {
     var startAnimation  by remember { mutableStateOf(false) }
     var minTimeElapsed  by remember { mutableStateOf(false) }
@@ -83,7 +84,11 @@ fun SplashScreen(
         if (authState == AuthState.Loading) return@LaunchedEffect
 
         val destination = when (authState) {
-            AuthState.Authenticated    -> Screen.Dashboard.route
+            AuthState.Authenticated    -> if (pendingDeepLinkEventId != null) {
+                Screen.EventDetail.createRoute(pendingDeepLinkEventId)
+            } else {
+                Screen.Dashboard.route
+            }
             AuthState.EmailNotVerified -> Screen.VerifyEmail.route
             else                       -> Screen.Login.route
         }

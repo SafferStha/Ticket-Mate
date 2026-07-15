@@ -1,6 +1,7 @@
 package com.example.individual_project.data.remote
 
 import com.example.individual_project.data.model.Booking
+import com.example.individual_project.utils.FirebaseErrorMapper
 import com.example.individual_project.utils.Resource
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.tasks.await
@@ -25,7 +26,7 @@ class FirebaseBookingDataSource @Inject constructor(
         bookingsRef.child(key).setValue(bookingWithId).await()
         Resource.Success(key)
     } catch (e: Exception) {
-        Resource.Error(e.message ?: "Failed to create booking", e)
+        Resource.Error(FirebaseErrorMapper.map(e, "Failed to create booking"), e)
     }
 
     suspend fun getUserBookings(userId: String): Resource<List<Booking>> = try {
@@ -33,7 +34,7 @@ class FirebaseBookingDataSource @Inject constructor(
         val bookings = snapshot.children.mapNotNull { it.getValue(Booking::class.java) }
         Resource.Success(bookings)
     } catch (e: Exception) {
-        Resource.Error(e.message ?: "Failed to fetch bookings", e)
+        Resource.Error(FirebaseErrorMapper.map(e, "Failed to fetch bookings"), e)
     }
 
     suspend fun getBookingById(bookingId: String): Resource<Booking> = try {
@@ -42,20 +43,20 @@ class FirebaseBookingDataSource @Inject constructor(
             ?: return Resource.Error("Booking not found: $bookingId")
         Resource.Success(booking)
     } catch (e: Exception) {
-        Resource.Error(e.message ?: "Failed to fetch booking", e)
+        Resource.Error(FirebaseErrorMapper.map(e, "Failed to fetch booking"), e)
     }
 
     suspend fun cancelBooking(bookingId: String): Resource<Unit> = try {
         bookingsRef.child(bookingId).child("bookingStatus").setValue("CANCELLED").await()
         Resource.Success(Unit)
     } catch (e: Exception) {
-        Resource.Error(e.message ?: "Failed to cancel booking", e)
+        Resource.Error(FirebaseErrorMapper.map(e, "Failed to cancel booking"), e)
     }
 
     suspend fun updateBookingStatus(bookingId: String, status: String): Resource<Unit> = try {
         bookingsRef.child(bookingId).child("bookingStatus").setValue(status).await()
         Resource.Success(Unit)
     } catch (e: Exception) {
-        Resource.Error(e.message ?: "Failed to update booking status", e)
+        Resource.Error(FirebaseErrorMapper.map(e, "Failed to update booking status"), e)
     }
 }

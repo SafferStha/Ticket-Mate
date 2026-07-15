@@ -1,6 +1,7 @@
 package com.example.individual_project.data.remote
 
 import com.example.individual_project.data.model.SearchHistoryItem
+import com.example.individual_project.utils.FirebaseErrorMapper
 import com.example.individual_project.utils.Resource
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.tasks.await
@@ -35,7 +36,7 @@ class FirebaseSearchDataSource @Inject constructor(
         historyRef(userId).child(key).setValue(item).await()
         Resource.Success(Unit)
     } catch (e: Exception) {
-        Resource.Error(e.message ?: "Failed to save search history", e)
+        Resource.Error(FirebaseErrorMapper.map(e, "Failed to save search history"), e)
     }
 
     suspend fun getSearchHistory(userId: String): Resource<List<SearchHistoryItem>> = try {
@@ -48,14 +49,14 @@ class FirebaseSearchDataSource @Inject constructor(
             .sortedByDescending { it.timestamp }
         Resource.Success(items)
     } catch (e: Exception) {
-        Resource.Error(e.message ?: "Failed to load search history", e)
+        Resource.Error(FirebaseErrorMapper.map(e, "Failed to load search history"), e)
     }
 
     suspend fun clearSearchHistory(userId: String): Resource<Unit> = try {
         historyRef(userId).removeValue().await()
         Resource.Success(Unit)
     } catch (e: Exception) {
-        Resource.Error(e.message ?: "Failed to clear search history", e)
+        Resource.Error(FirebaseErrorMapper.map(e, "Failed to clear search history"), e)
     }
 
     // Falls back to static defaults when the Firebase node is empty or unreachable.

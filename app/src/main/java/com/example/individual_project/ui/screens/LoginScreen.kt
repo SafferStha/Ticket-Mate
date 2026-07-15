@@ -1,6 +1,5 @@
 package com.example.individual_project.ui.screens
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,11 +17,9 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -54,7 +51,6 @@ import com.example.individual_project.ui.navigation.Screen
 import com.example.individual_project.ui.theme.IndividualProjectTheme
 import com.example.individual_project.ui.theme.Spacing
 import com.example.individual_project.ui.theme.TmBlue
-import com.example.individual_project.ui.theme.TmDivider
 import com.example.individual_project.ui.theme.TmLightBlue
 import com.example.individual_project.ui.theme.TmNavyBlue
 import com.example.individual_project.ui.viewmodel.AuthViewModel
@@ -238,58 +234,6 @@ fun LoginScreen(
                 isLoading = loginState.isLoading,
                 onClick   = { if (validate()) viewModel.login(email, password) }
             )
-
-            Spacer(modifier = Modifier.height(Spacing.lg))
-
-            // OR divider
-            Row(
-                modifier          = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                HorizontalDivider(modifier = Modifier.weight(1f), color = TmDivider)
-                Text(
-                    "  OR  ",
-                    style     = MaterialTheme.typography.bodySmall,
-                    color     = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-                HorizontalDivider(modifier = Modifier.weight(1f), color = TmDivider)
-            }
-
-            Spacer(modifier = Modifier.height(Spacing.md))
-
-            // Social buttons (UI-only placeholders)
-            Row(modifier = Modifier.fillMaxWidth()) {
-                OutlinedButton(
-                    onClick  = {},
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp),
-                    shape  = MaterialTheme.shapes.medium,
-                    border = BorderStroke(1.dp, TmDivider)
-                ) {
-                    Text(
-                        "🔍  Google",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                Spacer(modifier = Modifier.padding(horizontal = Spacing.sm))
-                OutlinedButton(
-                    onClick  = {},
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp),
-                    shape  = MaterialTheme.shapes.medium,
-                    border = BorderStroke(1.dp, TmDivider)
-                ) {
-                    Text(
-                        "📘  Facebook",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
 
             Spacer(modifier = Modifier.height(Spacing.xl))
 

@@ -6,10 +6,15 @@
 
     "events": {
       ".read": "auth != null",
-      ".write": false,
-      ".indexOn": ["category", "city", "date"],
+      ".indexOn": ["category", "city", "date", "featured"],
       "$eventId": {
-        ".read": "auth != null"
+        ".read": "auth != null",
+        ".write": "auth != null && auth.token.admin == true",
+        ".validate": "!newData.exists() || (newData.child('title').isString() && newData.child('title').val().length > 0 && newData.child('venue').isString() && newData.child('venue').val().length > 0 && newData.child('city').isString() && newData.child('city').val().length > 0 && newData.child('price').isNumber() && newData.child('price').val() >= 0 && newData.child('availableSeats').isNumber() && newData.child('availableSeats').val() >= 0)",
+
+        "availableSeats": {
+          ".write": "auth != null && (auth.token.admin == true || (newData.isNumber() && newData.val() >= 0))"
+        }
       }
     },
 
@@ -23,16 +28,18 @@
     "bookings": {
       ".indexOn": ["userId", "eventId"],
       "$bookingId": {
-        ".read": "auth != null && data.child('userId').val() == auth.uid",
-        ".write": "auth != null && !data.exists() && newData.child('userId').val() == auth.uid"
+        ".read": "auth != null && (data.child('userId').val() == auth.uid || auth.token.admin == true)",
+        ".write": "auth != null && ((!data.exists() && newData.child('userId').val() == auth.uid) || (data.exists() && data.child('userId').val() == auth.uid && data.child('bookingStatus').val() != 'CANCELLED' && newData.child('userId').val() == data.child('userId').val() && newData.child('eventId').val() == data.child('eventId').val() && newData.child('quantity').val() == data.child('quantity').val() && newData.child('totalPrice').val() == data.child('totalPrice').val()))",
+        ".validate": "newData.child('bookingStatus').val() == 'PENDING' || newData.child('bookingStatus').val() == 'CONFIRMED' || newData.child('bookingStatus').val() == 'CANCELLED' || newData.child('bookingStatus').val() == 'COMPLETED'"
       }
     },
 
     "payments": {
       ".indexOn": ["userId", "bookingId"],
       "$paymentId": {
-        ".read": "auth != null && data.child('userId').val() == auth.uid",
-        ".write": "auth != null && !data.exists() && newData.child('userId').val() == auth.uid"
+        ".read": "auth != null && (data.child('userId').val() == auth.uid || auth.token.admin == true)",
+        ".write": "auth != null && ((!data.exists() && newData.child('userId').val() == auth.uid) || (data.exists() && data.child('userId').val() == auth.uid && newData.child('userId').val() == data.child('userId').val() && newData.child('bookingId').val() == data.child('bookingId').val() && newData.child('totalAmount').val() == data.child('totalAmount').val()))",
+        ".validate": "newData.child('paymentStatus').val() == 'PENDING' || newData.child('paymentStatus').val() == 'SUCCESS' || newData.child('paymentStatus').val() == 'FAILED' || newData.child('paymentStatus').val() == 'REFUNDED'"
       }
     },
 
@@ -61,6 +68,26 @@
     "trending_keywords": {
       ".read":  "auth != null",
       ".write": false
+    },
+
+    "saved_locations": {
+      "$uid": {
+        ".read":  "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid",
+        "$locationId": {
+          ".validate": "newData.child('label').isString() && newData.child('label').val().length > 0 && newData.child('address').isString() && newData.child('address').val().length > 0 && newData.child('city').isString() && newData.child('city').val().length > 0"
+        }
+      }
+    },
+
+    "saved_payment_methods": {
+      "$uid": {
+        ".read":  "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid",
+        "$methodId": {
+          ".validate": "newData.child('displayName').isString() && newData.child('displayName').val().length > 0 && newData.child('maskedIdentifier').isString() && newData.child('maskedIdentifier').val().matches(/^[0-9]{4}$/)"
+        }
+      }
     }
 
   }

@@ -31,6 +31,16 @@ class PaymentRepositoryImpl @Inject constructor(
     ): Resource<String> {
         if (totalAmount <= 0.0) return Resource.Error("Invalid payment amount")
 
+        // ── 0. Idempotency guard ───────────────────────────────────────────────
+        // A retry (network timeout, process death after the write already landed, a UI bug
+        // slipping past the ViewModel's own guard) must never charge the same booking twice
+        // or issue a second ticket. If this booking already has a SUCCESS payment, hand back
+        // that same payment id instead of creating a new one.
+        val existingPaymentResult = paymentDataSource.getPaymentByBookingId(bookingId)
+        if (existingPaymentResult is Resource.Success) {
+            existingPaymentResult.data?.let { return Resource.Success(it.id) }
+        }
+
         // ── 1. Create PENDING payment record ─────────────────────────────────
         val pendingPayment = Payment(
             bookingId       = bookingId,
@@ -58,9 +68,12 @@ class PaymentRepositoryImpl @Inject constructor(
         // ── 3. Confirm the booking ────────────────────────────────────────────
         bookingDataSource.updateBookingStatus(bookingId, BookingStatus.CONFIRMED.name)
 
-        // ── 4. Generate ticket (critical: only on success) ────────────────────
+        // ── 4. Generate ticket (critical: only on success, and only once) ─────
+        val existingTicketResult = ticketDataSource.getTicketByBookingId(bookingId)
+        val ticketAlreadyExists  = (existingTicketResult as? Resource.Success)?.data != null
+
         val bookingResult = bookingDataSource.getBookingById(bookingId)
-        if (bookingResult is Resource.Success) {
+        if (bookingResult is Resource.Success && !ticketAlreadyExists) {
             val b = bookingResult.data
             ticketDataSource.createTicket(
                 Ticket(

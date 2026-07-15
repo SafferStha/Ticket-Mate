@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Receipt
+import com.example.individual_project.ui.viewmodel.PaymentMethod
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -201,7 +202,7 @@ private fun PaymentHistoryCard(payment: Payment) {
                     }
                     Column(modifier = Modifier.padding(start = Spacing.md)) {
                         Text(
-                            text       = payment.paymentMethod,
+                            text       = PaymentMethod.labelFor(payment.paymentMethod),
                             style      = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold
                         )

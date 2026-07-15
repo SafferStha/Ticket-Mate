@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.individual_project.data.model.Event
 import com.example.individual_project.domain.repository.EventRepository
+import com.example.individual_project.domain.repository.UserRepository
 import com.example.individual_project.ui.model.UiState
 import com.example.individual_project.utils.Resource
 import com.google.firebase.auth.FirebaseAuth
@@ -12,12 +13,14 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class EventDetailViewModel @Inject constructor(
     private val eventRepository : EventRepository,
+    private val userRepository  : UserRepository,
     private val firebaseAuth    : FirebaseAuth,
     savedStateHandle            : SavedStateHandle
 ) : ViewModel() {
@@ -41,10 +44,42 @@ class EventDetailViewModel @Inject constructor(
     private val _favoriteLoading = MutableStateFlow(false)
     val favoriteLoading: StateFlow<Boolean> = _favoriteLoading.asStateFlow()
 
+    // ── Favorites for the "You May Also Like" carousel ───────────────────────
+    private val _relatedFavoriteIds = MutableStateFlow<Set<String>>(emptySet())
+    val relatedFavoriteIds: StateFlow<Set<String>> = _relatedFavoriteIds.asStateFlow()
+
+    private val _relatedFavoriteLoadingIds = MutableStateFlow<Set<String>>(emptySet())
+    val relatedFavoriteLoadingIds: StateFlow<Set<String>> = _relatedFavoriteLoadingIds.asStateFlow()
+
     init {
         if (eventId.isNotBlank()) {
             loadEvent()
-            if (userId.isNotBlank()) checkFavoriteStatus()
+            if (userId.isNotBlank()) {
+                checkFavoriteStatus()
+                loadRelatedFavoriteIds()
+            }
+        }
+    }
+
+    /** Optimistically flips a related event's favorite state, rolling back on failure. */
+    fun toggleRelatedFavorite(relatedEventId: String) {
+        if (userId.isBlank() || relatedEventId in _relatedFavoriteLoadingIds.value) return
+        val wasFavorite = relatedEventId in _relatedFavoriteIds.value
+        viewModelScope.launch {
+            _relatedFavoriteIds.update { if (wasFavorite) it - relatedEventId else it + relatedEventId }
+            _relatedFavoriteLoadingIds.update { it + relatedEventId }
+            val result = eventRepository.toggleFavorite(relatedEventId, userId)
+            if (result is Resource.Error) {
+                _relatedFavoriteIds.update { if (wasFavorite) it + relatedEventId else it - relatedEventId }
+            }
+            _relatedFavoriteLoadingIds.update { it - relatedEventId }
+        }
+    }
+
+    private fun loadRelatedFavoriteIds() {
+        viewModelScope.launch {
+            val result = userRepository.getFavoriteEventIds(userId)
+            if (result is Resource.Success) _relatedFavoriteIds.value = result.data.toSet()
         }
     }
 

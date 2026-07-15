@@ -30,11 +30,21 @@ data class PaymentUiState(
     val error            : String?           = null
 )
 
+/**
+ * There is no real payment gateway integration in this app -- PaymentRepositoryImpl always
+ * simulates a successful charge. Every label makes that explicit so nobody mistakes this for
+ * a live eSewa/Khalti/card integration; see CheckoutScreen's "Demo Payment" banner too.
+ */
 enum class PaymentMethod(val key: String, val label: String) {
-    CARD  ("CARD",   "Credit / Debit Card"),
-    ESEWA ("ESEWA",  "eSewa"),
-    KHALTI("KHALTI", "Khalti"),
-    CASH  ("CASH",   "Cash (Simulation)")
+    CARD  ("CARD",   "Credit / Debit Card (Demo)"),
+    ESEWA ("ESEWA",  "eSewa (Demo)"),
+    KHALTI("KHALTI", "Khalti (Demo)"),
+    CASH  ("CASH",   "Cash (Demo)");
+
+    companion object {
+        /** Friendly demo-labeled display for a raw stored key, e.g. in payment history. */
+        fun labelFor(key: String): String = entries.find { it.key == key }?.label ?: key
+    }
 }
 
 @HiltViewModel
@@ -87,6 +97,7 @@ class PaymentViewModel @Inject constructor(
 
     fun processPayment() {
         val state     = _uiState.value
+        if (state.isProcessing) return
         val breakdown = state.breakdown ?: return
         if (userId.isBlank()) {
             _uiState.update { it.copy(error = "You must be logged in to pay") }

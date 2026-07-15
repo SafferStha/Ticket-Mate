@@ -54,16 +54,24 @@ sealed class Screen(val route: String) {
 
     // ─── Profile flow ─────────────────────────────────────────────────────────────
     object EditProfile    : Screen("edit_profile")
+    object ChangePassword : Screen("change_password")
 
     object TicketDetail   : Screen("ticket_detail/{ticketId}") {
         fun createRoute(ticketId: String) = "ticket_detail/$ticketId"
     }
 
-    object BookingHistory : Screen("booking_history")
-    object Favorites      : Screen("favorites")
-    object PaymentHistory : Screen("payment_history")
-    object Settings       : Screen("settings")
+    object BookingHistory  : Screen("booking_history")
+    object Favorites       : Screen("favorites")
+    object PaymentHistory  : Screen("payment_history")
+    object Settings        : Screen("settings")
+    object PrivacyPolicy   : Screen("privacy_policy")
+    object SavedLocations  : Screen("saved_locations")
+    object SavedPaymentMethods : Screen("saved_payment_methods")
 
-    // ─── Legacy (unused) ──────────────────────────────────────────────────────
-    object Categories  : Screen("categories")
+    // ─── Admin flow ───────────────────────────────────────────────────────────────
+    object AdminDashboard : Screen("admin_dashboard")
+    object AdminEventForm : Screen("admin_event_form?eventId={eventId}") {
+        fun createRoute(eventId: String? = null) =
+            if (eventId != null) "admin_event_form?eventId=$eventId" else "admin_event_form"
+    }
 }

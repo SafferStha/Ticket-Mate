@@ -23,10 +23,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,12 +36,10 @@ import com.example.individual_project.ui.theme.TmError
 @Composable
 fun EventCard(
     event           : EventUiModel,
-    onFavoriteClick : (Boolean) -> Unit = {},
-    onClick         : () -> Unit        = {},
-    modifier        : Modifier          = Modifier
+    onFavoriteClick : () -> Unit = {},
+    onClick         : () -> Unit = {},
+    modifier        : Modifier   = Modifier
 ) {
-    var liked by remember(event.id) { mutableStateOf(event.isLiked) }
-
     Card(
         modifier  = modifier
             .fillMaxWidth()
@@ -142,14 +136,11 @@ fun EventCard(
                 }
             }
 
-            IconButton(onClick = {
-                liked = !liked
-                onFavoriteClick(liked)
-            }) {
+            IconButton(onClick = onFavoriteClick) {
                 Icon(
-                    imageVector        = if (liked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = if (liked) "Unlike" else "Like",
-                    tint               = if (liked) TmError else MaterialTheme.colorScheme.onSurfaceVariant
+                    imageVector        = if (event.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = if (event.isLiked) "Unlike" else "Like",
+                    tint               = if (event.isLiked) TmError else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

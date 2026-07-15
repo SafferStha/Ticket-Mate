@@ -44,6 +44,7 @@ fun VerifyEmailScreen(
 ) {
     val authState      by viewModel.authState.collectAsState()
     val verifyState    by viewModel.verifyEmailState.collectAsState()
+    val cooldown       by viewModel.verifyEmailCooldown.collectAsState()
 
     // Firebase AuthStateListener fires when user verifies — navigate automatically
     LaunchedEffect(authState) {
@@ -149,7 +150,7 @@ fun VerifyEmailScreen(
             // Secondary CTA — resend verification email
             OutlinedButton(
                 onClick  = { viewModel.resendVerificationEmail() },
-                enabled  = !verifyState.isLoading,
+                enabled  = !verifyState.isLoading && cooldown == 0,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp),
@@ -163,7 +164,7 @@ fun VerifyEmailScreen(
                     )
                 } else {
                     Text(
-                        text       = "Resend Verification Email",
+                        text       = if (cooldown > 0) "Resend in ${cooldown}s" else "Resend Verification Email",
                         fontWeight = FontWeight.Medium,
                         fontSize   = 16.sp,
                         color      = TmBlue

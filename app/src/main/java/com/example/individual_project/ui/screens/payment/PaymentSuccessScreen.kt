@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.Receipt
+import com.example.individual_project.ui.viewmodel.PaymentMethod
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -265,7 +266,7 @@ fun PaymentSuccessScreen(
                                     "Tickets", "${state.quantity} ticket${if (state.quantity > 1) "s" else ""}"
                                 )
                                 HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.sm))
-                                PaySuccessRow("Method", payment.paymentMethod)
+                                PaySuccessRow("Method", PaymentMethod.labelFor(payment.paymentMethod))
                                 PaySuccessRow(
                                     label      = "Total Paid",
                                     value      = PriceFormatter.format(payment.totalAmount),

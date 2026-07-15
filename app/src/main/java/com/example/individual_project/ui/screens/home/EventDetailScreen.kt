@@ -88,6 +88,7 @@ fun EventDetailScreen(
     val relatedEventsState by viewModel.relatedEventsState.collectAsState()
     val isFavorite         by viewModel.isFavorite.collectAsState()
     val favoriteLoading    by viewModel.favoriteLoading.collectAsState()
+    val relatedFavoriteIds by viewModel.relatedFavoriteIds.collectAsState()
 
     Scaffold(
         topBar = {
@@ -130,14 +131,16 @@ fun EventDetailScreen(
                     onRetry = { viewModel.loadEvent() }
                 )
                 eventState.data != null -> EventDetailContent(
-                    event           = eventState.data!!,
-                    relatedEvents   = relatedEventsState.data ?: emptyList(),
-                    isFavorite      = isFavorite,
-                    favoriteLoading = favoriteLoading,
-                    onEventClick    = { id ->
+                    event                  = eventState.data!!,
+                    relatedEvents          = relatedEventsState.data ?: emptyList(),
+                    isFavorite             = isFavorite,
+                    favoriteLoading        = favoriteLoading,
+                    relatedFavoriteIds     = relatedFavoriteIds,
+                    onEventClick           = { id ->
                         navController.navigate(Screen.EventDetail.createRoute(id))
                     },
-                    onFavoriteClick = { viewModel.toggleFavorite() }
+                    onFavoriteClick        = { viewModel.toggleFavorite() },
+                    onRelatedFavoriteClick = { id -> viewModel.toggleRelatedFavorite(id) }
                 )
             }
         }
@@ -148,12 +151,14 @@ fun EventDetailScreen(
 
 @Composable
 private fun EventDetailContent(
-    event           : Event,
-    relatedEvents   : List<Event>,
-    isFavorite      : Boolean,
-    favoriteLoading : Boolean,
-    onEventClick    : (String) -> Unit,
-    onFavoriteClick : () -> Unit
+    event                  : Event,
+    relatedEvents          : List<Event>,
+    isFavorite             : Boolean,
+    favoriteLoading        : Boolean,
+    relatedFavoriteIds     : Set<String>,
+    onEventClick           : (String) -> Unit,
+    onFavoriteClick        : () -> Unit,
+    onRelatedFavoriteClick : (String) -> Unit
 ) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
 
@@ -295,9 +300,10 @@ private fun EventDetailContent(
                     ) {
                         items(relatedEvents, key = { it.id }) { related ->
                             EventCard(
-                                event    = related.toUiModel(),
-                                onClick  = { onEventClick(related.id) },
-                                modifier = Modifier.width(288.dp)
+                                event           = related.toUiModel().copy(isLiked = related.id in relatedFavoriteIds),
+                                onClick         = { onEventClick(related.id) },
+                                onFavoriteClick = { onRelatedFavoriteClick(related.id) },
+                                modifier        = Modifier.width(288.dp)
                             )
                         }
                     }

@@ -32,6 +32,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -42,9 +43,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.individual_project.ui.components.ErrorView
@@ -59,6 +63,8 @@ import com.example.individual_project.ui.theme.TmLightBlue
 import com.example.individual_project.ui.theme.TmNavyBlue
 import com.example.individual_project.ui.viewmodel.AuthViewModel
 import com.example.individual_project.ui.viewmodel.ProfileViewModel
+import com.example.individual_project.utils.DateFormatter
+import com.example.individual_project.utils.PriceFormatter
 
 private data class QuickAction(
     val icon   : ImageVector,
@@ -74,6 +80,7 @@ fun ProfileScreen(
 ) {
     val state     by profileViewModel.profileState.collectAsState()
     val authState by authViewModel.authState.collectAsState()
+    val isAdmin   by authViewModel.isAdmin.collectAsState()
 
     // AuthGuard in NavGraph handles redirection after logout automatically.
     // This LaunchedEffect handles the one-shot channel event emitted by logout().
@@ -85,13 +92,27 @@ fun ProfileScreen(
         }
     }
 
-    val quickActions = listOf(
-        QuickAction(Icons.Default.QrCode,     "My Tickets",      Screen.MyTickets.route),
-        QuickAction(Icons.Default.BookOnline, "Booking History", Screen.BookingHistory.route),
-        QuickAction(Icons.Default.Favorite,   "Favorites",       Screen.Favorites.route),
-        QuickAction(Icons.Default.CreditCard, "Payment History", Screen.PaymentHistory.route),
-        QuickAction(Icons.Default.Settings,   "Settings",        Screen.Settings.route)
-    )
+    // Re-fetch stats every time this destination resumes, so numbers stay accurate after
+    // completing a booking/payment or (un)favoriting an event on a screen pushed on top of it.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) profileViewModel.loadProfile()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    val quickActions = buildList {
+        add(QuickAction(Icons.Default.QrCode,     "My Tickets",      Screen.MyTickets.route))
+        add(QuickAction(Icons.Default.BookOnline, "Booking History", Screen.BookingHistory.route))
+        add(QuickAction(Icons.Default.Favorite,   "Favorites",       Screen.Favorites.route))
+        add(QuickAction(Icons.Default.CreditCard, "Payment History", Screen.PaymentHistory.route))
+        add(QuickAction(Icons.Default.Settings,   "Settings",        Screen.Settings.route))
+        if (isAdmin) {
+            add(QuickAction(Icons.Default.Edit, "Admin · Manage Events", Screen.AdminDashboard.route))
+        }
+    }
 
     when {
         state.isLoading -> LoadingView()
@@ -195,18 +216,26 @@ fun ProfileScreen(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = TmLightBlue
                             )
+                            if (user != null && user.createdAt > 0L) {
+                                Spacer(modifier = Modifier.height(Spacing.xs))
+                                Text(
+                                    text  = "Member since ${DateFormatter.formatMemberSince(user.createdAt)}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = TmLightBlue
+                                )
+                            }
 
                             Spacer(modifier = Modifier.height(Spacing.lg))
 
                             // ── Stats ───────────────────────────────────────
-                            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                                 StatBadge(value = "${state.ticketCount}",   label = "Tickets")
-                                Box(
-                                    modifier = Modifier
-                                        .size(width = 1.dp, height = 36.dp)
-                                        .background(Color.White.copy(alpha = 0.3f))
-                                )
+                                StatDivider()
+                                StatBadge(value = "${state.totalBookings}", label = "Bookings")
+                                StatDivider()
                                 StatBadge(value = "${state.favoriteCount}", label = "Favorites")
+                                StatDivider()
+                                StatBadge(value = PriceFormatter.formatShort(state.totalSpent), label = "Spent")
                             }
                         }
                     }
@@ -315,6 +344,15 @@ private fun QuickActionRow(
             modifier = Modifier.size(Spacing.iconLg)
         )
     }
+}
+
+@Composable
+private fun StatDivider() {
+    Box(
+        modifier = Modifier
+            .size(width = 1.dp, height = 36.dp)
+            .background(Color.White.copy(alpha = 0.3f))
+    )
 }
 
 @Composable
